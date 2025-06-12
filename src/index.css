@@ -1,0 +1,124 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --color-primary: 99 102 241; /* indigo-500 */
+    --color-primary-dark: 79 70 229; /* indigo-600 */
+    --color-secondary: 59 130 246; /* blue-500 */
+    --color-accent: 249 115 22; /* orange-500 */
+    --color-warning: 250 204 21; /* yellow-400 */
+    --color-error: 239 68 68; /* red-500 */
+    --color-success: 34 197 94; /* green-500 */
+    
+    --color-background: 255 255 255; /* white */
+    --color-foreground: 17 24 39; /* gray-900 */
+    --color-muted: 156 163 175; /* gray-400 */
+    --color-card: 249 250 251; /* gray-50 */
+    --color-card-foreground: 17 24 39; /* gray-900 */
+    --color-border: 229 231 235; /* gray-200 */
+  }
+
+  .dark {
+    --color-primary: 129 140 248; /* indigo-400 */
+    --color-primary-dark: 99 102 241; /* indigo-500 */
+    --color-secondary: 59 130 246; /* blue-500 */
+    --color-accent: 249 115 22; /* orange-500 */
+    --color-warning: 250 204 21; /* yellow-400 */
+    --color-error: 239 68 68; /* red-500 */
+    --color-success: 34 197 94; /* green-500 */
+    
+    --color-background: 9 9 11; /* zinc-950 */
+    --color-foreground: 250 250 250; /* zinc-50 */
+    --color-muted: 161 161 170; /* zinc-400 */
+    --color-card: 24 24 27; /* zinc-900 */
+    --color-card-foreground: 250 250 250; /* zinc-50 */
+    --color-border: 39 39 42; /* zinc-800 */
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+@layer components {
+  .card {
+    @apply bg-card text-card-foreground rounded-2xl border border-border shadow-sm p-6;
+  }
+
+  .btn {
+    @apply inline-flex items-center justify-center rounded-xl text-sm font-medium transition-colors
+           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2
+           disabled:opacity-50 disabled:pointer-events-none;
+  }
+
+  .btn-primary {
+    @apply btn bg-primary text-white hover:bg-primary-dark;
+  }
+
+  .btn-secondary {
+    @apply btn bg-secondary text-white hover:bg-secondary/90;
+  }
+
+  .btn-outline {
+    @apply btn border border-border bg-background hover:bg-muted/20;
+  }
+
+  .input {
+    @apply flex h-12 w-full rounded-xl border border-border bg-background px-4 py-2 text-sm
+           placeholder:text-muted focus-visible:outline-none focus-visible:ring-2
+           focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50;
+  }
+}
+
+/* Custom animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.5s ease-in-out;
+}
+
+/* Ensure smooth transitions when switching themes */
+* {
+  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+/* Camera styles */
+.camera-container {
+  flex: 1;
+  background-color: black;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.camera-video {
+  width: 100%;
+  height: 60vh; /* Adjust as needed */
+  object-fit: cover;
+  border-radius: 10px;
+}
+
+.camera-shutter-button {
+  position: absolute;
+  bottom: 20px;
+  align-self: center;
+  background-color: white;
+  border-radius: 50%;
+  padding: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  border: none;
+  cursor: pointer;
+}
+
+.error {
+  color: red;
+  margin-bottom: 10px;
+}
