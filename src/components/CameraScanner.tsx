@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Circle } from 'lucide-react';
+import { useAnalyzePicture } from '../hooks/useApi';
 type CameraState = 'checking' | 'requesting' | 'active' | 'denied' | 'error' | 'stopped';
 
 const CameraScanner = ({ onBarcodeDetected }: { onBarcodeDetected?: (barcode: string) => void }) => {
@@ -7,6 +8,7 @@ const CameraScanner = ({ onBarcodeDetected }: { onBarcodeDetected?: (barcode: st
   const streamRef = useRef<MediaStream | null>(null);
   const [cameraState, setCameraState] = useState<CameraState>('checking');
   const [error, setError] = useState<string>('');
+  const { mutate: analyzePicture } = useAnalyzePicture();
 
   const retryAccess = () => {
     setError('');
@@ -74,7 +76,7 @@ const CameraScanner = ({ onBarcodeDetected }: { onBarcodeDetected?: (barcode: st
         video: {
           width: { ideal: 1280 },
           height: { ideal: 720 },
-          facingMode: 'user'
+          facingMode: 'environment'
         },
         audio: false
       });
@@ -124,11 +126,32 @@ const CameraScanner = ({ onBarcodeDetected }: { onBarcodeDetected?: (barcode: st
     }
   };
 
-  // ... keep existing code (checkPermissions and retryAccess functions)
+  const takePhoto = async () => {
+    if (videoRef.current) {
+      const canvas = document.createElement('canvas');
+      canvas.width = videoRef.current.videoWidth;
+      canvas.height = videoRef.current.videoHeight;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
+        const base64Image = canvas.toDataURL('image/jpeg').split(',')[1]; // You can change the format if needed
+        console.log(base64Image)
+        // Call the API to analyze the picture
+        try {
+          analyzePicture(base64Image);
+        } catch (error) {
+          console.error('Error analyzing picture:', error);
+          // Handle the error as needed
+        }
+      } else {
+        console.error('Could not get 2D context from canvas');
+      }
+    }
+  };
+
 
   useEffect(() => {
     checkPermissions();
-
     // Cleanup on unmount
     return () => {
       console.log('CameraFeed component unmounting, cleaning up...');
@@ -171,15 +194,12 @@ const CameraScanner = ({ onBarcodeDetected }: { onBarcodeDetected?: (barcode: st
           <>
             <button
               className="camera-shutter-button absolute bottom-4 left-1/2 transform -translate-x-1/2"
-              onClick={() => { console.log("Scanning Barcode") }}
+              onClick={takePhoto}
               disabled={false}
             >
               <Circle size={48} color="#333" />
             </button>
-            <button onClick={(e) => {
-              e.preventDefault();
-              stopCamera();
-            }}>Stop Camera</button>
+
           </>
         )}
       </div>
