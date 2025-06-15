@@ -8,6 +8,7 @@ import Search from './pages/Search';
 import MealAnalysis from './pages/MealAnalysis';
 import FoodDetails from './pages/FoodDetails';
 import Profile from './pages/Profile';
+import MealDetails from './pages/MealDetails';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -29,6 +30,7 @@ function App() {
               <Route path="search" element={<Search />} />
               <Route path="analyze" element={<MealAnalysis />} />
               <Route path="food/:foodId" element={<FoodDetails />} />
+              <Route path="meal" element={<MealDetails />} />
               <Route path="profile" element={<Profile />} />
             </Route>
           </Routes>

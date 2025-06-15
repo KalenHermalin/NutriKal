@@ -12,33 +12,23 @@ interface FoodSearchListProps {
 
 const FoodSearchList: React.FC<FoodSearchListProps> = ({ onFoodAdded }) => {
   const [query, setQuery] = useState('');
-  const [debouncedQuery, setDebouncedQuery] = useState('');
   const [selectedFood, setSelectedFood] = useState<Food | null>(null);
   const [selectedServing, setSelectedServing] = useState<Serving | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [isAdding, setIsAdding] = useState(false);
 
   const { addFoodToLog } = useFoodTracking();
-  
-  const { 
-    data: foods, 
-    isLoading, 
-    isError, 
-    error 
-  } = useSearchFood(debouncedQuery, 0);
 
-  // Debounce search input
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedQuery(query);
-    }, 300);
-    
-    return () => clearTimeout(timer);
-  }, [query]);
+  const {
+    data: foods,
+    isLoading,
+    isError,
+    error
+  } = useSearchFood(query, 0);
 
   const handleFoodSelect = (food: Food) => {
     setSelectedFood(food);
-    const servingsArray = food.servings?.serving;
+    const servingsArray = food.servings;
     const defaultServing = Array.isArray(servingsArray) && servingsArray.length > 0
       ? servingsArray.find(s => s.is_default === "1") || servingsArray[0]
       : null;
@@ -57,7 +47,7 @@ const FoodSearchList: React.FC<FoodSearchListProps> = ({ onFoodAdded }) => {
       const fat = Math.round(parseFloat(selectedServing.fat) * quantity * 10) / 10;
 
       const success = await addFoodToLog(
-        selectedFood.food_id.toString(),
+        selectedFood.food_id,
         selectedFood.food_name,
         selectedFood.brand_name,
         `${quantity} × ${selectedServing.serving_description || selectedServing.measurement_description}`,
@@ -82,7 +72,6 @@ const FoodSearchList: React.FC<FoodSearchListProps> = ({ onFoodAdded }) => {
 
   const clearSearch = () => {
     setQuery('');
-    setDebouncedQuery('');
     setSelectedFood(null);
     setSelectedServing(null);
   };
@@ -113,7 +102,7 @@ const FoodSearchList: React.FC<FoodSearchListProps> = ({ onFoodAdded }) => {
       </div>
 
       {/* Loading State */}
-      {isLoading && debouncedQuery && (
+      {isLoading && query && (
         <div className="flex items-center justify-center py-8">
           <LoadingSpinner text="Searching foods..." />
         </div>
@@ -127,7 +116,7 @@ const FoodSearchList: React.FC<FoodSearchListProps> = ({ onFoodAdded }) => {
       )}
 
       {/* No Results */}
-      {!isLoading && debouncedQuery && foods && foods.length === 0 && (
+      {!isLoading && query && foods && foods.length === 0 && (
         <div className="text-center py-8">
           <p className="text-lg font-medium">No foods found</p>
           <p className="text-muted">Try a different search term</p>
@@ -136,18 +125,18 @@ const FoodSearchList: React.FC<FoodSearchListProps> = ({ onFoodAdded }) => {
 
       {/* Search Results */}
       {!isLoading && foods && foods.length > 0 && !selectedFood && (
-        <motion.div 
+        <motion.div
           className="space-y-2 max-h-96 overflow-y-auto"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
         >
           {foods.map((food) => {
-            const servingsArray = food.servings?.serving;
+            const servingsArray = food.servings;
             const defaultServing = Array.isArray(servingsArray)
               ? servingsArray.find(s => s.is_default === "1") || servingsArray[0]
               : null;
-            const calories = defaultServing?.calories || '0';
-            
+            const calories = servingsArray[0].calories;
+
             return (
               <motion.div
                 key={food.food_id}
@@ -202,18 +191,18 @@ const FoodSearchList: React.FC<FoodSearchListProps> = ({ onFoodAdded }) => {
             </div>
 
             {/* Serving Selection */}
-            {selectedFood.servings?.serving?.length > 1 && (
+            {selectedFood.servings?.length > 1 && (
               <div className="mb-4">
                 <label className="block text-sm font-medium mb-2">Serving Size</label>
                 <select
                   className="input"
                   value={selectedServing.serving_id}
                   onChange={(e) => {
-                    const serving = selectedFood.servings?.serving.find(s => s.serving_id === e.target.value);
+                    const serving = selectedFood.servings?.find(s => s.serving_id === e.target.value);
                     if (serving) setSelectedServing(serving);
                   }}
                 >
-                  {selectedFood.servings?.serving.map((serving) => (
+                  {selectedFood.servings?.map((serving) => (
                     <option key={serving.serving_id} value={serving.serving_id}>
                       {serving.serving_description || serving.measurement_description}
                     </option>
@@ -292,7 +281,7 @@ const FoodSearchList: React.FC<FoodSearchListProps> = ({ onFoodAdded }) => {
       </AnimatePresence>
 
       {/* Popular Searches */}
-      {!debouncedQuery && !selectedFood && (
+      {!query && !selectedFood && (
         <div className="mt-6">
           <h3 className="text-sm font-medium mb-3 text-muted">Popular Foods</h3>
           <div className="flex flex-wrap gap-2">

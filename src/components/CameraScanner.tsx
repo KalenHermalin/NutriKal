@@ -1,6 +1,10 @@
 import { useState, useRef, useEffect } from 'react';
 import { Circle } from 'lucide-react';
 import { useAnalyzePicture } from '../hooks/useApi';
+import { useNavigate } from 'react-router-dom'; // Import useNavigate
+import { Food } from '../types';
+import LoadingSpinner from './common/LoadingSpinner';
+
 type CameraState = 'checking' | 'requesting' | 'active' | 'denied' | 'error' | 'stopped';
 
 const CameraScanner = ({ onBarcodeDetected }: { onBarcodeDetected?: (barcode: string) => void }) => {
@@ -8,7 +12,9 @@ const CameraScanner = ({ onBarcodeDetected }: { onBarcodeDetected?: (barcode: st
   const streamRef = useRef<MediaStream | null>(null);
   const [cameraState, setCameraState] = useState<CameraState>('checking');
   const [error, setError] = useState<string>('');
-  const { mutate: analyzePicture } = useAnalyzePicture();
+  const { analyzePicture, isLoading: isAnalyzing } = useAnalyzePicture();
+  const navigate = useNavigate(); // Initialize useNavigate
+  const [apiError, setApiError] = useState<string | null>(null);
 
   const retryAccess = () => {
     setError('');
@@ -135,12 +141,31 @@ const CameraScanner = ({ onBarcodeDetected }: { onBarcodeDetected?: (barcode: st
       if (ctx) {
         ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
         const base64Image = canvas.toDataURL('image/jpeg').split(',')[1]; // You can change the format if needed
-        console.log(base64Image)
         // Call the API to analyze the picture
         try {
-          analyzePicture(base64Image);
+          setApiError(null); // Clear any previous API errors
+          const [data, error] = await analyzePicture(base64Image);
+          if (error) {
+            setApiError('Failed to analyze the picture. Please try again.');
+            throw error;
+          }
+          console.log("CamScan: ", data);
+          // Navigate to FoodDetails page with the food ID
+          if (data && data.ingredients && data.ingredients.length === 1) {
+            const food: Food = data.ingredients[0]; // Assuming the first ingredient is the main food
+            navigate(`/food/${food.food_id}`, { state: { food: food } });
+          } else if (data && data.ingredients && data.ingredients.length > 1) {
+            // Navigate to MealDetails page with the meal data
+            navigate('/meal', { state: { meal: data.ingredients } });
+          }
+          else {
+            console.warn('No ingredients found in the analysis result.');
+            setApiError('No ingredients found. Please try again with a clearer picture.');
+            // Handle the case where no ingredients are found, possibly show an error message
+          }
         } catch (error) {
           console.error('Error analyzing picture:', error);
+          setApiError('Failed to analyze the picture. Please try again.');
           // Handle the error as needed
         }
       } else {
@@ -179,6 +204,7 @@ const CameraScanner = ({ onBarcodeDetected }: { onBarcodeDetected?: (barcode: st
   return (
     <div className="camera-container">
       {error && <div className="error">{error}</div>}
+      {apiError && <div className="error">{apiError}</div>}
 
       {/* Always render the video element but hide it when not active */}
       <div className="relative w-full h-full">
@@ -195,9 +221,13 @@ const CameraScanner = ({ onBarcodeDetected }: { onBarcodeDetected?: (barcode: st
             <button
               className="camera-shutter-button absolute bottom-4 left-1/2 transform -translate-x-1/2"
               onClick={takePhoto}
-              disabled={false}
+              disabled={isAnalyzing}
             >
-              <Circle size={48} color="#333" />
+              {isAnalyzing ? (
+                <LoadingSpinner size={48} color="#fff" />
+              ) : (
+                <Circle size={48} color="#333" />
+              )}
             </button>
 
           </>

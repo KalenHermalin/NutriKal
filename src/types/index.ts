@@ -54,6 +54,11 @@ export interface MealServerResponse {
   ingredients: Food[];
 }
 
+export interface FoodSearchServerResponse {
+  success: boolean;
+  foods: Food[];
+}
+
 // Additional types for app state management
 
 export interface NutritionSummary {

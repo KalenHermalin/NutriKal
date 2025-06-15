@@ -1,113 +1,37 @@
 import React from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ChevronLeft, Plus } from 'lucide-react';
 import NutritionCard from '../components/common/NutritionCard';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import { motion } from 'framer-motion';
+import { Food } from '../types';
 
-// Mock food data for demonstration
-const mockFoods = {
-  '1001': {
-    food_id: 1001,
-    food_name: "Grilled Salmon",
-    brand_name: "Generic",
-    servings: [
-      {
-        serving_id: "1",
-        serving_description: "100g",
-        serving_url: "",
-        metric_serving_amount: "100",
-        metric_serving_unit: "g",
-        number_of_units: "1",
-        measurement_description: "100g serving",
-        is_default: "true",
-        calories: "206",
-        carbohydrate: "0",
-        protein: "22",
-        fat: "13",
-        saturated_fat: "3",
-        polyunsaturated_fat: "4",
-        monounsaturated_fat: "5",
-        trans_fat: "0",
-        cholesterol: "60",
-        sodium: "60",
-        potassium: "380",
-        fiber: "0",
-        sugar: "0",
-        added_sugars: "0",
-        vitamin_d: "10",
-        vitamin_a: "1",
-        vitamin_c: "0",
-        calcium: "1",
-        iron: "1"
-      }
-    ]
-  },
-  '1002': {
-    food_id: 1002,
-    food_name: "Mixed Greens",
-    brand_name: "Generic",
-    servings: [
-      {
-        serving_id: "1",
-        serving_description: "100g",
-        serving_url: "",
-        metric_serving_amount: "100",
-        metric_serving_unit: "g",
-        number_of_units: "1",
-        measurement_description: "100g serving",
-        is_default: "true",
-        calories: "25",
-        carbohydrate: "5",
-        protein: "2",
-        fat: "0",
-        saturated_fat: "0",
-        polyunsaturated_fat: "0",
-        monounsaturated_fat: "0",
-        trans_fat: "0",
-        cholesterol: "0",
-        sodium: "30",
-        potassium: "370",
-        fiber: "2",
-        sugar: "1",
-        added_sugars: "0",
-        vitamin_d: "0",
-        vitamin_a: "70",
-        vitamin_c: "40",
-        calcium: "5",
-        iron: "10"
-      }
-    ]
-  }
-};
+interface FoodDetailsProps {
+  food?: Food;
+}
 
-const FoodDetails = () => {
-  const { foodId } = useParams<{ foodId: string }>();
+const FoodDetails: React.FC<FoodDetailsProps> = ({ food: propFood }) => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  // Check if food data is passed via location state
+  const food = propFood || (location.state?.food as Food);
   const [selectedServingIndex, setSelectedServingIndex] = React.useState(0);
-  
-  // In a real app, this would come from an API
-  const food = mockFoods[foodId as keyof typeof mockFoods];
-  const isLoading = !food && foodId !== undefined;
-  
-  if (isLoading) {
+
+  // If food is not available, redirect to search
+  React.useEffect(() => {
+    if (!food && !propFood) {
+      navigate('/search', { replace: true });
+    }
+  }, [food, navigate, propFood]);
+
+  if (!food) {
     return (
       <div className="flex justify-center items-center h-64">
         <LoadingSpinner text="Loading food details..." />
       </div>
     );
   }
-  
-  if (!food) {
-    return (
-      <div className="text-center py-8">
-        <p className="text-lg font-medium">Food not found</p>
-        <Link to="/search" className="text-primary hover:underline mt-2 inline-block">
-          Go back to search
-        </Link>
-      </div>
-    );
-  }
-  
+
   const selectedServing = food.servings[selectedServingIndex];
 
   return (
@@ -118,8 +42,8 @@ const FoodDetails = () => {
         </Link>
         <h1 className="text-2xl font-bold">Food Details</h1>
       </div>
-      
-      <motion.div 
+
+      <motion.div
         className="card"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -129,7 +53,7 @@ const FoodDetails = () => {
         {food.brand_name && (
           <p className="text-sm text-muted">{food.brand_name}</p>
         )}
-        
+
         {food.servings.length > 1 && (
           <div className="mt-4">
             <label className="block text-sm font-medium mb-2">Serving Size</label>
@@ -146,7 +70,7 @@ const FoodDetails = () => {
             </select>
           </div>
         )}
-        
+
         <div className="flex justify-end mt-4">
           <button className="btn btn-primary py-2 px-4">
             <Plus size={16} className="mr-2" />
@@ -154,7 +78,7 @@ const FoodDetails = () => {
           </button>
         </div>
       </motion.div>
-      
+
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -162,8 +86,8 @@ const FoodDetails = () => {
       >
         <NutritionCard serving={selectedServing} />
       </motion.div>
-      
-      <motion.div 
+
+      <motion.div
         className="card"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}

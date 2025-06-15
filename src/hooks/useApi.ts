@@ -1,7 +1,8 @@
 import { useQuery, useMutation } from 'react-query';
-import { Food, MealServerResponse } from '../types';
+import { Food, MealServerResponse, FoodSearchServerResponse } from '../types';
 
-const API_URL = 'https://seashell-app-l9wr9.ondigitalocean.app';
+const API_URL = 'https://octopus-app-8lwy6.ondigitalocean.app';
+//const API_URL = 'http://localhost:8080';
 
 // Helper function to handle API errors
 const handleApiError = (error: unknown) => {
@@ -15,16 +16,17 @@ export const useSearchFood = (query: string, page: number = 0) => {
     ['searchFood', query, page],
     async () => {
       if (!query.trim()) return [];
-      
+
       const response = await fetch(
         `${API_URL}/api/search?q=${encodeURIComponent(query)}&page=${page}`
       );
-      
+
       if (!response.ok) {
         throw new Error(`Error ${response.status}: ${response.statusText}`);
       }
-      
-      return response.json();
+
+      const data: FoodSearchServerResponse = await response.json();
+      return data.foods;
     },
     {
       enabled: query.trim().length > 0,
@@ -41,15 +43,15 @@ export const useBarcodeSearch = (barcode: string) => {
     ['barcode', barcode],
     async () => {
       if (!barcode.trim()) throw new Error('Barcode is required');
-      
+
       const response = await fetch(
         `${API_URL}/api/barcode?code=${encodeURIComponent(barcode)}`
       );
-      
+
       if (!response.ok) {
         throw new Error(`Error ${response.status}: ${response.statusText}`);
       }
-      
+
       return response.json();
     },
     {
@@ -62,7 +64,7 @@ export const useBarcodeSearch = (barcode: string) => {
 
 // Function to analyze a food/meal picture
 export const useAnalyzePicture = () => {
-  return useMutation<MealServerResponse, Error, string>(
+  const mutation = useMutation<MealServerResponse, Error, string>(
     async (base64Image: string) => {
       const response = await fetch(`${API_URL}/api/picture`, {
         method: 'POST',
@@ -71,17 +73,33 @@ export const useAnalyzePicture = () => {
         },
         body: JSON.stringify({ picture: base64Image }),
       });
-      
+
       if (!response.ok) {
         throw new Error(`Error ${response.status}: ${response.statusText}`);
       }
-      
+
       return response.json();
     },
     {
       onError: handleApiError,
     }
   );
+
+  // Return a simpler interface
+  const analyzePicture = async (base64Image: string): Promise<[MealServerResponse | null, Error | null]> => {
+    try {
+      const data = await mutation.mutateAsync(base64Image);
+      return [data, null];
+    } catch (error) {
+      return [null, error as Error];
+    }
+  };
+
+  return {
+    analyzePicture,
+    isLoading: mutation.isLoading,
+    reset: mutation.reset,
+  };
 };
 
 // Function to get catalog foods with filtering
@@ -100,17 +118,17 @@ export const useCatalogFoods = (filters: {
         'soup', 'sandwich', 'pizza', 'eggs', 'bread', 'cheese', 'yogurt',
         'apple', 'banana', 'oatmeal', 'quinoa', 'tofu', 'beans'
       ];
-      
+
       const randomTerm = searchTerms[Math.floor(Math.random() * searchTerms.length)];
-      
+
       const response = await fetch(
         `${API_URL}/api/search?q=${encodeURIComponent(randomTerm)}&page=0`
       );
-      
+
       if (!response.ok) {
         throw new Error(`Error ${response.status}: ${response.statusText}`);
       }
-      
+
       return response.json();
     },
     {
