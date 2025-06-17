@@ -1,5 +1,5 @@
 import { useQuery, useMutation } from 'react-query';
-import { Food, MealServerResponse, FoodSearchServerResponse } from '../types';
+import { Food, MealServerResponse, FoodSearchServerResponse, Serving } from '../types';
 import { useError } from '../components/ErrorSystem';
 
 // API error type based on OpenAPI spec
@@ -22,6 +22,42 @@ const handleApiError = (error: unknown) => {
   }
   // Don't rethrow the error - this prevents React Query from logging it again
   return Promise.resolve(); // Return a resolved promise to prevent unhandled rejections
+};
+
+// Helper function to normalize food data from the API
+const normalizeFood = (food: any): Food => {
+  // Handle case where servings is an object with a serving array
+  let normalizedServings: Serving[] = [];
+
+  if (food.servings) {
+    if (Array.isArray(food.servings)) {
+      normalizedServings = food.servings;
+    } else if (food.servings.serving) {
+      // Handle both array and single object cases
+      normalizedServings = Array.isArray(food.servings.serving)
+        ? food.servings.serving
+        : [food.servings.serving];
+    }
+  }
+
+  return {
+    ...food,
+    servings: normalizedServings
+  };
+};
+
+// Helper function to normalize meal response
+const normalizeMealResponse = (response: any): MealServerResponse => {
+  if (!response.ingredients) return response;
+
+  const normalizedIngredients = Array.isArray(response.ingredients)
+    ? response.ingredients.map(normalizeFood)
+    : [normalizeFood(response.ingredients)];
+
+  return {
+    ...response,
+    ingredients: normalizedIngredients
+  };
 };
 
 // Function to search for food items
@@ -48,7 +84,8 @@ export const useSearchFood = (query: string, page: number = 0) => {
         }
 
         const data: FoodSearchServerResponse = await response.json();
-        return data.foods;
+        // Normalize the food data to ensure consistent structure
+        return data.foods.map(normalizeFood);
       } catch (error) {
         // Handle network errors (like "Failed to fetch")
         console.info('Network error:', error);
@@ -101,7 +138,9 @@ export const useBarcodeSearch = (barcode: string) => {
           throw new Error(errorData.message);
         }
 
-        return response.json();
+        const data = await response.json();
+        // Normalize the food data to ensure consistent structure
+        return normalizeFood(data);
       } catch (error) {
         // Handle network errors (like "Failed to fetch")
         console.info('Network error:', error);
@@ -180,7 +219,10 @@ export const useAnalyzePicture = () => {
   const analyzePicture = async (base64Image: string): Promise<[MealServerResponse | null, Error | null]> => {
     try {
       const data = await mutation.mutateAsync(base64Image);
-      return [data, null];
+      // Normalize the response to ensure consistent structure
+      const normalizedData = normalizeMealResponse(data);
+      console.log('Normalized data:', normalizedData);
+      return [normalizedData, null];
     } catch (error) {
       // Don't add error here since the component will handle it
       // This prevents duplicate error messages

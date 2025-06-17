@@ -199,9 +199,15 @@ const CameraScanner = ({ onBarcodeDetected }: { onBarcodeDetected?: (barcode: st
 
           if (data && data.ingredients && data.ingredients.length === 1) {
             const food: Food = data.ingredients[0];
-            navigate(`/food/${food.food_id}`, { state: { food: food } });
+            // Make sure we're passing the food object correctly
+            navigate(`/food/${food.food_id}`, {
+              state: { food }
+            });
           } else if (data && data.ingredients && data.ingredients.length > 1) {
-            navigate('/meal', { state: { meal: data.ingredients } });
+            // Pass the entire meal array as state
+            navigate('/meal', {
+              state: { meal: data.ingredients }
+            });
           } else {
             console.warn('No ingredients found in the analysis result.');
             addError({

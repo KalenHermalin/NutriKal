@@ -3,12 +3,23 @@ import { motion } from 'framer-motion';
 import { Serving } from '../../types';
 
 interface NutritionCardProps {
-  serving: Serving;
+  serving: Serving | any; // Allow any to handle unexpected API responses
 }
 
 const NutritionCard: React.FC<NutritionCardProps> = ({ serving }) => {
+  // Handle case where serving might be undefined or malformed
+  if (!serving) {
+    return (
+      <div className="card">
+        <h3 className="text-lg font-semibold mb-4">Nutrition Facts</h3>
+        <p className="text-red-500">No nutrition information available</p>
+      </div>
+    );
+  }
+
   // Calculate percentages based on recommended daily values
-  const calculatePercentage = (value: string, dailyValue: number) => {
+  const calculatePercentage = (value: string | undefined, dailyValue: number) => {
+    if (!value) return 0;
     const numValue = parseFloat(value);
     if (isNaN(numValue) || dailyValue === 0) return 0;
     return Math.round((numValue / dailyValue) * 100);
@@ -16,33 +27,33 @@ const NutritionCard: React.FC<NutritionCardProps> = ({ serving }) => {
 
   // Macro nutrients with recommended daily values (in grams, except calories)
   const macros = [
-    { 
-      name: 'Calories', 
-      value: serving.calories, 
-      dailyValue: 2000, 
+    {
+      name: 'Calories',
+      value: serving?.calories || '0',
+      dailyValue: 2000,
       unit: 'kcal',
       color: 'bg-primary'
     },
-    { 
-      name: 'Carbs', 
-      value: serving.carbohydrate, 
-      dailyValue: 275, 
+    {
+      name: 'Carbs',
+      value: serving?.carbohydrate || '0',
+      dailyValue: 275,
       unit: 'g',
-      color: 'bg-blue-400' 
+      color: 'bg-blue-400'
     },
-    { 
-      name: 'Protein', 
-      value: serving.protein, 
-      dailyValue: 50, 
+    {
+      name: 'Protein',
+      value: serving?.protein || '0',
+      dailyValue: 50,
       unit: 'g',
-      color: 'bg-purple-400' 
+      color: 'bg-purple-400'
     },
-    { 
-      name: 'Fat', 
-      value: serving.fat, 
-      dailyValue: 78, 
+    {
+      name: 'Fat',
+      value: serving?.fat || '0',
+      dailyValue: 78,
       unit: 'g',
-      color: 'bg-yellow-400' 
+      color: 'bg-yellow-400'
     },
   ];
 
@@ -50,14 +61,14 @@ const NutritionCard: React.FC<NutritionCardProps> = ({ serving }) => {
     <div className="card">
       <h3 className="text-lg font-semibold mb-4">Nutrition Facts</h3>
       <p className="text-sm text-muted mb-4">
-        Serving: {serving.serving_description || serving.measurement_description}
+        Serving: {serving?.serving_description || serving?.measurement_description || 'Standard serving'}
       </p>
 
       <div className="space-y-4">
         {macros.map((macro) => {
           const value = parseFloat(macro.value);
           const percentage = calculatePercentage(macro.value, macro.dailyValue);
-          
+
           return (
             <div key={macro.name} className="space-y-1">
               <div className="flex justify-between text-sm">
@@ -84,19 +95,19 @@ const NutritionCard: React.FC<NutritionCardProps> = ({ serving }) => {
         <div className="grid grid-cols-2 gap-2 text-sm">
           <div className="flex justify-between">
             <span>Fiber</span>
-            <span>{serving.fiber || '0'}g</span>
+            <span>{serving?.fiber || '0'}g</span>
           </div>
           <div className="flex justify-between">
             <span>Sugar</span>
-            <span>{serving.sugar || '0'}g</span>
+            <span>{serving?.sugar || '0'}g</span>
           </div>
           <div className="flex justify-between">
             <span>Sodium</span>
-            <span>{serving.sodium || '0'}mg</span>
+            <span>{serving?.sodium || '0'}mg</span>
           </div>
           <div className="flex justify-between">
             <span>Potassium</span>
-            <span>{serving.potassium || '0'}mg</span>
+            <span>{serving?.potassium || '0'}mg</span>
           </div>
           <div className="flex justify-between">
             <span>Vitamin C</span>
