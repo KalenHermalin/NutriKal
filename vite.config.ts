@@ -7,26 +7,7 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      manifest: {
-        name: 'NutriTrack | Nutrition Tracking App',
-        short_name: 'NutriTrack',
-        icons: [
-          {
-            src: '/192x192.png',
-            sizes: '192x192',
-            type: 'image/png',
-          },
-          {
-            src: '/512x512.png',
-            sizes: '512x512',
-            type: 'image/png',
-          },
-        ],
-        start_url: '/',
-        display: 'standalone',
-        theme_color: '#ffffff',
-        background_color: '#ffffff',
-      },
+
       registerType: 'autoUpdate',
       devOptions: {
         enabled: true

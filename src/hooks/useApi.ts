@@ -1,87 +1,178 @@
 import { useQuery, useMutation } from 'react-query';
 import { Food, MealServerResponse, FoodSearchServerResponse } from '../types';
+import { useError } from '../components/ErrorSystem';
+
+// API error type based on OpenAPI spec
+export interface ErrorResponse {
+  error: 'MISSING_PICTURE' | 'AI_ANALYSIS_FAILED' | 'MEAL_EXTRACTION_FAILED' |
+  'NUTRITION_API_FAILED' | 'MISSING_QUERY' | 'SEARCH_API_FAILED' | 'UNKNOWN_ERROR';
+  message: string;
+}
 
 const API_URL = 'https://octopus-app-8lwy6.ondigitalocean.app';
 //const API_URL = 'http://localhost:8080';
 
 // Helper function to handle API errors
 const handleApiError = (error: unknown) => {
-  console.error('API Error:', error);
-  return Promise.reject(error);
+  // Just log to console with info/warn level (not error)
+  if (error instanceof Error) {
+    console.warn('API Error:', error.message);
+  } else {
+    console.info('Unknown API Error:', error);
+  }
+  // Don't rethrow the error - this prevents React Query from logging it again
+  return Promise.resolve(); // Return a resolved promise to prevent unhandled rejections
 };
 
 // Function to search for food items
 export const useSearchFood = (query: string, page: number = 0) => {
+  const { addError } = useError();
+
   return useQuery<Food[], Error>(
-    ['searchFood', query, page],
-    async () => {
+    ['searchFood', query, page], async () => {
       if (!query.trim()) return [];
 
-      const response = await fetch(
-        `${API_URL}/api/search?q=${encodeURIComponent(query)}&page=${page}`
-      );
+      try {
+        const response = await fetch(
+          `${API_URL}/api/search?q=${encodeURIComponent(query)}&page=${page}`
+        );
 
-      if (!response.ok) {
-        throw new Error(`Error ${response.status}: ${response.statusText}`);
+        if (!response.ok) {
+          const errorData: ErrorResponse = await response.json().catch(() => ({
+            error: 'UNKNOWN_ERROR',
+            message: `Error ${response.status}: ${response.statusText}`
+          }));
+
+          console.info(`API Error: ${errorData.error}`, errorData);
+          throw new Error(errorData.message);
+        }
+
+        const data: FoodSearchServerResponse = await response.json();
+        return data.foods;
+      } catch (error) {
+        // Handle network errors (like "Failed to fetch")
+        console.info('Network error:', error);
+
+        // Create a user-friendly error message
+        const message = error instanceof Error
+          ? error.message
+          : 'Failed to connect to the server';
+
+        throw new Error(message);
       }
-
-      const data: FoodSearchServerResponse = await response.json();
-      return data.foods;
     },
     {
       enabled: query.trim().length > 0,
       keepPreviousData: true,
       staleTime: 5 * 60 * 1000, // 5 minutes
-      onError: handleApiError,
+      onError: (error) => {
+        handleApiError(error);
+        addError({
+          message: error instanceof Error ? error.message : 'Unknown search error',
+          type: 'user-recoverable'
+        });
+      },
+      // Silence React Query's console logging
+      useErrorBoundary: false,
     }
   );
 };
 
 // Function to get food information by barcode
 export const useBarcodeSearch = (barcode: string) => {
+  const { addError } = useError();
+
   return useQuery<Food, Error>(
-    ['barcode', barcode],
-    async () => {
+    ['barcode', barcode], async () => {
       if (!barcode.trim()) throw new Error('Barcode is required');
 
-      const response = await fetch(
-        `${API_URL}/api/barcode?code=${encodeURIComponent(barcode)}`
-      );
+      try {
+        const response = await fetch(
+          `${API_URL}/api/barcode?code=${encodeURIComponent(barcode)}`
+        );
 
-      if (!response.ok) {
-        throw new Error(`Error ${response.status}: ${response.statusText}`);
+        if (!response.ok) {
+          const errorData: ErrorResponse = await response.json().catch(() => ({
+            error: 'UNKNOWN_ERROR',
+            message: `Error ${response.status}: ${response.statusText}`
+          }));
+
+          console.info(`API Error: ${errorData.error}`, errorData);
+          throw new Error(errorData.message);
+        }
+
+        return response.json();
+      } catch (error) {
+        // Handle network errors (like "Failed to fetch")
+        console.info('Network error:', error);
+
+        // Create a user-friendly error message
+        const message = error instanceof Error
+          ? error.message
+          : 'Failed to connect to the server';
+
+        throw new Error(message);
       }
-
-      return response.json();
     },
     {
       enabled: barcode.trim().length > 0,
       staleTime: 10 * 60 * 1000, // 10 minutes
-      onError: handleApiError,
+      onError: (error) => {
+        handleApiError(error);
+        addError({
+          message: error instanceof Error ? error.message : 'Failed to lookup barcode',
+          type: 'user-recoverable'
+        });
+      },
+      // Silence React Query's console logging
+      useErrorBoundary: false,
     }
   );
 };
 
 // Function to analyze a food/meal picture
 export const useAnalyzePicture = () => {
+  // No need for useError here as error handling is done in the component
+
   const mutation = useMutation<MealServerResponse, Error, string>(
     async (base64Image: string) => {
-      const response = await fetch(`${API_URL}/api/picture`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ picture: base64Image }),
-      });
+      try {
+        const response = await fetch(`${API_URL}/api/picture`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ picture: base64Image }),
+        });
 
-      if (!response.ok) {
-        throw new Error(`Error ${response.status}: ${response.statusText}`);
+        if (!response.ok) {
+          const json = await response.json();
+          const errorData: ErrorResponse = json || {
+            error: 'UNKNOWN_ERROR',
+            message: `Error ${response.status}: ${response.statusText}`
+          };
+
+          console.info(`API Error: ${errorData.error}`, errorData);
+          throw new Error(errorData.message);
+        }
+
+        return response.json();
+      } catch (error) {
+        // Handle network errors (like "Failed to fetch")
+        console.info('Network error:', error);
+
+        // Create a user-friendly error message
+        const message = error instanceof Error
+          ? error.message
+          : 'Failed to connect to the server';
+
+        throw new Error(message);
       }
-
-      return response.json();
     },
     {
       onError: handleApiError,
+      // Silence React Query's console logging
+      useErrorBoundary: false,
     }
   );
 
@@ -91,6 +182,8 @@ export const useAnalyzePicture = () => {
       const data = await mutation.mutateAsync(base64Image);
       return [data, null];
     } catch (error) {
+      // Don't add error here since the component will handle it
+      // This prevents duplicate error messages
       return [null, error as Error];
     }
   };
@@ -109,9 +202,10 @@ export const useCatalogFoods = (filters: {
   cuisine?: string;
   timeRange?: string;
 }) => {
+  const { addError } = useError();
+
   return useQuery<Food[], Error>(
-    ['catalogFoods', filters],
-    async () => {
+    ['catalogFoods', filters], async () => {
       // For demo purposes, we'll use search with popular food terms
       const searchTerms = [
         'chicken', 'salmon', 'pasta', 'salad', 'rice', 'beef', 'vegetables',
@@ -121,19 +215,45 @@ export const useCatalogFoods = (filters: {
 
       const randomTerm = searchTerms[Math.floor(Math.random() * searchTerms.length)];
 
-      const response = await fetch(
-        `${API_URL}/api/search?q=${encodeURIComponent(randomTerm)}&page=0`
-      );
+      try {
+        const response = await fetch(
+          `${API_URL}/api/search?q=${encodeURIComponent(randomTerm)}&page=0`
+        );
 
-      if (!response.ok) {
-        throw new Error(`Error ${response.status}: ${response.statusText}`);
+        if (!response.ok) {
+          const errorData: ErrorResponse = await response.json().catch(() => ({
+            error: 'UNKNOWN_ERROR',
+            message: `Error ${response.status}: ${response.statusText}`
+          }));
+
+          console.info(`API Error: ${errorData.error}`, errorData);
+          throw new Error(errorData.message);
+        }
+
+        return response.json();
+      } catch (error) {
+        // Handle network errors (like "Failed to fetch")
+        console.info('Network error:', error);
+
+        // Create a user-friendly error message
+        const message = error instanceof Error
+          ? error.message
+          : 'Failed to connect to the server';
+
+        throw new Error(message);
       }
-
-      return response.json();
     },
     {
       staleTime: 10 * 60 * 1000, // 10 minutes
-      onError: handleApiError,
+      onError: (error) => {
+        handleApiError(error);
+        addError({
+          message: error instanceof Error ? error.message : 'Failed to load catalog foods',
+          type: 'user-recoverable'
+        });
+      },
+      // Silence React Query's console logging
+      useErrorBoundary: false,
     }
   );
 };

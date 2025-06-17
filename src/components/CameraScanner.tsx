@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect } from 'react';
 import { Circle } from 'lucide-react';
 import { useAnalyzePicture } from '../hooks/useApi';
-import { useNavigate } from 'react-router-dom'; // Import useNavigate
+import { useNavigate } from 'react-router-dom';
 import { Food } from '../types';
 import LoadingSpinner from './common/LoadingSpinner';
+import { useError } from './ErrorSystem';
 
 type CameraState = 'checking' | 'requesting' | 'active' | 'denied' | 'error' | 'stopped';
 
@@ -11,27 +12,29 @@ const CameraScanner = ({ onBarcodeDetected }: { onBarcodeDetected?: (barcode: st
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const [cameraState, setCameraState] = useState<CameraState>('checking');
-  const [error, setError] = useState<string>('');
-  const { analyzePicture, isLoading: isAnalyzing } = useAnalyzePicture();
-  const navigate = useNavigate(); // Initialize useNavigate
-  const [apiError, setApiError] = useState<string | null>(null);
+  const { analyzePicture } = useAnalyzePicture();
+  const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
+  const { addError } = useError();
 
   const retryAccess = () => {
-    setError('');
     setCameraState('checking');
     checkPermissions();
   };
+
   const checkPermissions = async () => {
     try {
       console.log('Checking camera permissions...');
 
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         setCameraState('error');
-        setError('Camera API not supported in this browser.');
+        addError({
+          message: 'Camera API not supported in this browser. Please use a modern browser.',
+          type: 'system-critical'
+        });
         return;
       }
 
-      // Check if permissions API is available
       if ('permissions' in navigator) {
         const permission = await navigator.permissions.query({ name: 'camera' as PermissionName });
         console.log('Camera permission status:', permission.state);
@@ -40,19 +43,27 @@ const CameraScanner = ({ onBarcodeDetected }: { onBarcodeDetected?: (barcode: st
           await startCamera();
         } else if (permission.state === 'denied') {
           setCameraState('denied');
-          setError('Camera access is blocked. Please enable camera permissions in your browser settings.');
+          addError({
+            message: 'Camera access is blocked. Please enable camera permissions in your browser settings.',
+            type: 'user-recoverable',
+            userAction: {
+              label: 'Retry',
+              onClick: retryAccess
+            }
+          });
         } else {
-          // Permission state is 'prompt', so request access
           await startCamera();
         }
       } else {
-        // Permissions API not available, directly request camera access
         await startCamera();
       }
     } catch (err) {
       console.error('Permission check error:', err);
       setCameraState('error');
-      setError('Failed to check camera permissions.');
+      addError({
+        message: 'Failed to check camera permissions.',
+        type: 'system-critical'
+      });
     }
   };
   const stopStream = () => {
@@ -101,7 +112,10 @@ const CameraScanner = ({ onBarcodeDetected }: { onBarcodeDetected?: (barcode: st
               .catch(err => {
                 console.error('Error playing video:', err);
                 setCameraState('error');
-                setError('Failed to display camera feed.');
+                addError({
+                  message: 'Failed to display camera feed.',
+                  type: 'system-critical'
+                });
               });
           }
         };
@@ -114,25 +128,49 @@ const CameraScanner = ({ onBarcodeDetected }: { onBarcodeDetected?: (barcode: st
       if (err instanceof Error) {
         if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
           setCameraState('denied');
-          setError('Camera access denied. Please allow camera permissions and try again.');
+          addError({
+            message: 'Camera access denied. Please allow camera permissions and try again.',
+            type: 'user-recoverable',
+            userAction: {
+              label: 'Retry',
+              onClick: retryAccess
+            }
+          });
         } else if (err.name === 'NotFoundError') {
           setCameraState('error');
-          setError('No camera found on this device.');
+          addError({
+            message: 'No camera found on this device.',
+            type: 'system-critical'
+          });
         } else if (err.name === 'NotReadableError') {
           setCameraState('error');
-          setError('Camera is already in use by another application.');
+          addError({
+            message: 'Camera is already in use by another application.',
+            type: 'user-recoverable',
+            userAction: {
+              label: 'Retry',
+              onClick: retryAccess
+            }
+          });
         } else {
           setCameraState('error');
-          setError(`Camera error: ${err.message}`);
+          addError({
+            message: `Camera error: ${err.message}`,
+            type: 'system-critical'
+          });
         }
       } else {
         setCameraState('error');
-        setError('An unknown camera error occurred.');
+        addError({
+          message: 'An unknown camera error occurred.',
+          type: 'system-critical'
+        });
       }
     }
   };
 
   const takePhoto = async () => {
+    setIsLoading(true);
     if (videoRef.current) {
       const canvas = document.createElement('canvas');
       canvas.width = videoRef.current.videoWidth;
@@ -140,36 +178,60 @@ const CameraScanner = ({ onBarcodeDetected }: { onBarcodeDetected?: (barcode: st
       const ctx = canvas.getContext('2d');
       if (ctx) {
         ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
-        const base64Image = canvas.toDataURL('image/jpeg').split(',')[1]; // You can change the format if needed
-        // Call the API to analyze the picture
+        const base64Image = canvas.toDataURL('image/jpeg').split(',')[1];
+
         try {
-          setApiError(null); // Clear any previous API errors
           const [data, error] = await analyzePicture(base64Image);
           if (error) {
-            setApiError('Failed to analyze the picture. Please try again.');
-            throw error;
+            addError({
+              message: error.message,
+              type: 'user-recoverable',
+              userAction: {
+                label: 'Try Again',
+                onClick: takePhoto
+              }
+            });
+            setIsLoading(false);
+            return
           }
+
           console.log("CamScan: ", data);
-          // Navigate to FoodDetails page with the food ID
+
           if (data && data.ingredients && data.ingredients.length === 1) {
-            const food: Food = data.ingredients[0]; // Assuming the first ingredient is the main food
+            const food: Food = data.ingredients[0];
             navigate(`/food/${food.food_id}`, { state: { food: food } });
           } else if (data && data.ingredients && data.ingredients.length > 1) {
-            // Navigate to MealDetails page with the meal data
             navigate('/meal', { state: { meal: data.ingredients } });
-          }
-          else {
+          } else {
             console.warn('No ingredients found in the analysis result.');
-            setApiError('No ingredients found. Please try again with a clearer picture.');
-            // Handle the case where no ingredients are found, possibly show an error message
+            addError({
+              message: 'No food detected. Try taking a clearer picture with better lighting.',
+              type: 'user-recoverable',
+              userAction: {
+                label: 'Try Again',
+                onClick: takePhoto
+              }
+            });
+            setIsLoading(false);
           }
         } catch (error) {
-          console.error('Error analyzing picture:', error);
-          setApiError('Failed to analyze the picture. Please try again.');
-          // Handle the error as needed
+          addError({
+            message: 'Failed to analyze the picture. Please check your internet connection and try again.',
+            type: 'user-recoverable',
+            userAction: {
+              label: 'Retry',
+              onClick: takePhoto
+            }
+          });
+          setIsLoading(false);
         }
       } else {
-        console.error('Could not get 2D context from canvas');
+        addError({
+          message: 'Failed to process the image. Please try again.',
+          type: 'system-critical'
+        });
+        setIsLoading(false);
+
       }
     }
   };
@@ -186,7 +248,7 @@ const CameraScanner = ({ onBarcodeDetected }: { onBarcodeDetected?: (barcode: st
 
 
 
-  /* const shutterButtonClass = `
+  const shutterButtonClass = `
      rounded-full
      bg-white
      shadow-lg
@@ -198,15 +260,11 @@ const CameraScanner = ({ onBarcodeDetected }: { onBarcodeDetected?: (barcode: st
      items-center
      justify-center
      focus:outline-none
-     ${isScanning ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-100 active:bg-gray-200 cursor-pointer'}
+     ${isLoading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-100 active:bg-gray-200 cursor-pointer'}
    `;
- */
+
   return (
     <div className="camera-container">
-      {error && <div className="error">{error}</div>}
-      {apiError && <div className="error">{apiError}</div>}
-
-      {/* Always render the video element but hide it when not active */}
       <div className="relative w-full h-full">
         <video
           ref={videoRef}
@@ -217,20 +275,17 @@ const CameraScanner = ({ onBarcodeDetected }: { onBarcodeDetected?: (barcode: st
         />
 
         {cameraState === 'active' && (
-          <>
-            <button
-              className="camera-shutter-button absolute bottom-4 left-1/2 transform -translate-x-1/2"
-              onClick={takePhoto}
-              disabled={isAnalyzing}
-            >
-              {isAnalyzing ? (
-                <LoadingSpinner size={48} color="#fff" />
-              ) : (
-                <Circle size={48} color="#333" />
-              )}
-            </button>
-
-          </>
+          <button
+            className="camera-shutter-button absolute bottom-4 left-1/2 transform -translate-x-1/2"
+            onClick={takePhoto}
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <LoadingSpinner size={48} color="#fff" />
+            ) : (
+              <Circle size={48} color="#333" />
+            )}
+          </button>
         )}
       </div>
 

@@ -9,6 +9,8 @@ import MealAnalysis from './pages/MealAnalysis';
 import FoodDetails from './pages/FoodDetails';
 import Profile from './pages/Profile';
 import MealDetails from './pages/MealDetails';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const queryClient = new QueryClient({
   defaultOptions: {

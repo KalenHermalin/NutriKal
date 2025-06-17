@@ -5,9 +5,8 @@ const urlsToCache = [
   '/src/main.tsx',
   '/src/App.tsx',
   '/src/index.css',
-  '/vite.svg',
-  '/android-chrome-192x192.png',
-  '/android-chrome-512x512.png',
+  '/192x192.png',
+  '/512x512.png',
 ];
 
 self.addEventListener('install', event => {
@@ -21,6 +20,11 @@ self.addEventListener('install', event => {
 });
 
 self.addEventListener('fetch', event => {
+  // Skip API requests and only cache static assets
+  if (event.request.url.includes('/api/')) {
+    return;
+  }
+
   event.respondWith(
     caches.match(event.request)
       .then(response => {

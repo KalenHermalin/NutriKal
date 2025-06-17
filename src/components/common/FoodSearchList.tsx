@@ -5,6 +5,7 @@ import { useSearchFood } from '../../hooks/useApi';
 import { useFoodTracking } from '../../hooks/useFoodTracking';
 import { Food, Serving } from '../../types';
 import LoadingSpinner from './LoadingSpinner';
+import { useError } from '../ErrorSystem';
 
 interface FoodSearchListProps {
   onFoodAdded?: () => void;
@@ -18,6 +19,7 @@ const FoodSearchList: React.FC<FoodSearchListProps> = ({ onFoodAdded }) => {
   const [isAdding, setIsAdding] = useState(false);
 
   const { addFoodToLog } = useFoodTracking();
+  const { addError } = useError();
 
   const {
     data: foods,
@@ -25,6 +27,24 @@ const FoodSearchList: React.FC<FoodSearchListProps> = ({ onFoodAdded }) => {
     isError,
     error
   } = useSearchFood(query, 0);
+
+  // Handle API errors through ErrorContext
+  useEffect(() => {
+    if (isError && error) {
+      addError({
+        message: `Food search failed: ${(error as Error).message}`,
+        type: 'user-recoverable',
+        userAction: {
+          label: 'Retry Search',
+          onClick: () => {
+            const currentQuery = query;
+            setQuery('');
+            setTimeout(() => setQuery(currentQuery), 100);
+          }
+        }
+      });
+    }
+  }, [isError, error, addError, query]);
 
   const handleFoodSelect = (food: Food) => {
     setSelectedFood(food);
@@ -62,9 +82,26 @@ const FoodSearchList: React.FC<FoodSearchListProps> = ({ onFoodAdded }) => {
         setSelectedServing(null);
         setQuery('');
         onFoodAdded?.();
+      } else {
+        addError({
+          message: 'Failed to add food to log. Please try again.',
+          type: 'user-recoverable',
+          userAction: {
+            label: 'Retry',
+            onClick: handleAddFood
+          }
+        });
       }
     } catch (err) {
       console.error('Error adding food:', err);
+      addError({
+        message: 'Failed to add food to log. Please check your connection and try again.',
+        type: 'user-recoverable',
+        userAction: {
+          label: 'Retry',
+          onClick: handleAddFood
+        }
+      });
     } finally {
       setIsAdding(false);
     }
