@@ -44,15 +44,6 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // Skip cross-origin requests for improved reliability
-  const requestUrl = new URL(event.request.url);
-  const sameOrigin = requestUrl.origin === self.location.origin;
-
-  // Only handle same-origin requests
-  if (!sameOrigin) {
-    return;
-  }
-
   // Handle API requests - don't cache
   if (event.request.url.includes('/api/')) {
     return fetch(event.request);
