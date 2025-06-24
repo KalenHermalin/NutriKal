@@ -127,7 +127,7 @@ const ErrorDisplay: React.FC = () => {
                             initial={{ opacity: 0, y: -20 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -20 }}
-                            className="bg-error/40 border border-error/50 rounded-xl p-4 mb-2 flex items-center justify-between"
+                            className="bg-error/70 border border-error/50 rounded-xl p-4 mb-2 flex items-center justify-between"
                         >
                             <div className="flex items-center gap-3">
                                 <AlertTriangle className="text-error" size={20} />
@@ -171,7 +171,7 @@ const ErrorDisplay: React.FC = () => {
                             initial={{ opacity: 0, y: -20 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -20 }}
-                            className="bg-warning/40 border border-warning/50 rounded-xl p-4 mb-2 flex items-center justify-between"
+                            className="bg-warning/70 border border-warning/50 rounded-xl p-4 mb-2 flex items-center justify-between"
                         >
                             <div className="flex items-center gap-3">
                                 <AlertCircle className="text-warning" size={20} />

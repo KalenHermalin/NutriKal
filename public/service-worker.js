@@ -1,5 +1,7 @@
 const CACHE_NAME = 'nutritrack-cache-v1';
-const urlsToCache = [
+const ASSET_CACHE_NAME = `${CACHE_NAME}-assets`; // Separate cache for assets
+
+const CORE_ASSETS = [
   '/',
   '/index.html',
   '/manifest.webmanifest',
@@ -13,90 +15,75 @@ self.addEventListener('install', event => {
     caches.open(CACHE_NAME)
       .then(cache => {
         console.log('Opened cache');
-        return cache.addAll(urlsToCache);
-      })
-  );
-});
-
-self.addEventListener('fetch', event => {
-  // Skip API requests and only cache static assets
-  if (event.request.url.includes('/api/')) {
-    return;
-  }
-  if (event.request.method !== 'get') return false;
-
-  if (event.request.mode === 'navigate') {
-    event.respondWith(fetch(event.request).then(response => {
-      if (response && response.status === 200) {
-        const responseToCache = response.clone();
-        caches.open(CACHE_NAME).then(cache => {
-          cache.put(event.request, responseToCache)
-        });
-        return response;
-      }
-    }).catch(() => {
-      return caches.match(event.request).then(cachedResponse => {
-        if (cachedResponse) {
-          return cachedResponse
-        }
-        return caches.match('/')
-      })
-    }))
-    return;
-  }
-  event.respondWith(
-    caches.match(event.request)
-      .then(response => {
-        // Cache hit - return response
-        if (response) {
-          return response;
-        }
-
-        // IMPORTANT: Clone the request. A request is a stream and
-        // can only be consumed once.
-        const fetchRequest = event.request.clone();
-
-        return fetch(fetchRequest).then(
-          response => {
-            // Check if we received a valid response
-            if (!response || response.status !== 200) {
-              return response;
-            }
-
-            // IMPORTANT: Clone the response. A response is a stream
-            // and because we want to use it twice, we need to clone it.
-            const responseToCache = response.clone();
-
-            caches.open(CACHE_NAME)
-              .then(cache => {
-                cache.put(event.request, responseToCache);
-              }).catch(err => console.log('Cache put error:', err));
-
-            return response;
-          }
-        ).catch(err => {
-          console.error('Fetch failed:', err);
-          // No cache match and network failed
-          return new Response('Network error occurred', {
-            status: 408,
-            headers: { 'Content-Type': 'text/plain' }
-          });
-        });
+        return cache.addAll(CORE_ASSETS);
       })
   );
 });
 
 self.addEventListener('activate', event => {
-  const cacheWhitelist = [CACHE_NAME];
+  const cacheWhitelist = [CACHE_NAME, ASSET_CACHE_NAME];
   event.waitUntil(
     caches.keys().then(cacheNames => {
       return Promise.all(
         cacheNames.map(cacheName => {
-          if (cacheWhitelist.indexOf(cacheName) === -1) {
+          if (!cacheWhitelist.includes(cacheName)) {
             return caches.delete(cacheName);
           }
         })
       );
+    }).then(() => {
+      // Take control of all clients immediately
+      return self.clients.claim();
+    })
+  );
+});
+
+self.addEventListener('fetch', event => {
+  // Skip non-HTTP/HTTPS requests and browser extensions
+  if (!event.request.url.startsWith('http')) {
+    return;
+  }
+
+  // Skip cross-origin requests for improved reliability
+  const requestUrl = new URL(event.request.url);
+  const sameOrigin = requestUrl.origin === self.location.origin;
+
+  // Only handle same-origin requests
+  if (!sameOrigin) {
+    return;
+  }
+
+  // Handle API requests - don't cache
+  if (event.request.url.includes('/api/')) {
+    return fetch(event.request);
+  }
+
+  // Define a function to handle asset caching
+  const handleAssetCaching = async () => {
+    const cache = await caches.open(ASSET_CACHE_NAME);
+    const cachedResponse = await cache.match(event.request);
+
+    if (cachedResponse) {
+      return cachedResponse;
+    }
+
+    const networkResponse = await fetch(event.request);
+    if (networkResponse.ok) {
+      cache.put(event.request, networkResponse.clone());
+    }
+    return networkResponse;
+  };
+
+  // Check if the request is for an asset in the /assets/ directory
+  if (event.request.url.includes('/assets/')) {
+    event.respondWith(handleAssetCaching());
+    return;
+  }
+
+  // For other requests, try the cache first, then network
+  event.respondWith(
+    caches.match(event.request).then(cachedResponse => {
+      return cachedResponse || fetch(event.request);
     })
   );
 });

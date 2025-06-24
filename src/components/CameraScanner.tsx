@@ -15,6 +15,7 @@ const CameraScanner = () => {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const { addNotifications } = useNotification();
+  const { analyzePicture } = useAnalyzePicture();
 
   const retryAccess = () => {
     setCameraState('checking');
@@ -180,8 +181,8 @@ const CameraScanner = () => {
         const base64Image = canvas.toDataURL('image/jpeg').split(',')[1];
 
         try {
-          const { data, error, isError } = await useAnalyzePicture(base64Image);
-          if (isError) {
+          const { data, error, isError } = await analyzePicture(base64Image);
+          if (isError && error) {
             addNotifications({
               message: error.message,
               type: 'user-error',
@@ -220,13 +221,10 @@ const CameraScanner = () => {
             setIsLoading(false);
           }
         } catch (error) {
+          console.log(error)
           addNotifications({
             message: 'Failed to analyze the picture. Please check your internet connection and try again.',
             type: 'user-error',
-            userAction: {
-              label: 'Retry',
-              onClick: takePhoto
-            }
           });
           setIsLoading(false);
         }
@@ -306,10 +304,23 @@ const CameraScanner = () => {
 const RequestiongCamereaComp = () => {
   const { addNotifications } = useNotification()
   useEffect(() => {
-    console.log("Notifiying")
-    addNotifications({
-      message: "Requesting camera access...",
-      type: "info"
+    if ('BarcodeDetector' in globalThis) {
+      addNotifications({
+        message: "Barcode Detector is avalaiable",
+        type: 'info'
+      })
+    } else {
+      addNotifications({
+        message: "Barcode detector API is not avalaiable, some browers need to enable this feature",
+        type: 'info'
+      })
+    }
+    navigator.permissions.query({ name: 'camera' }).then(res => {
+      if (res.state === 'prompt')
+        addNotifications({
+          message: "Requesting camera access...",
+          type: "info"
+        })
     })
   }, [])
   return (

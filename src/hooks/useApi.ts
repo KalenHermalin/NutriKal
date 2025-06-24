@@ -115,39 +115,40 @@ export const useSearchFood = (query: string, page: number = 0) => {
   );
 };
 
-const analyze = async (base64Image: string) => {
-  try {
-    const response = await fetch(`${API_URL}/api/picture`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ picture: base64Image }),
-    });
-    if (!response.ok) {
-      const json = await response.json();
-      throw new Error(json.message)
-    }
-
-    return await response.json();
-
-  } catch (e) {
-    throw e
-  }
-}
-
 // Function to analyze a food/meal picture
-export const useAnalyzePicture = (base64Image: string) => {
-  // No need for useError here as error handling is done in the component
-  return useQuery<MealServerResponse, Error>({
-    queryKey: ['analyzePicture', base64Image],
-    queryFn: () => analyze(base64Image)
-  })
-}
+export const useAnalyzePicture = () => {
+  const analyzePicture = async (base64Image: string) => {
+    try {
+      const response = await fetch(`${API_URL}/api/picture`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ picture: base64Image }),
+      });
 
+      if (!response.ok) {
+        const json = await response.json();
+        return {
+          data: null,
+          error: { message: json.message || 'Failed to analyze picture' },
+          isError: true
+        };
+      }
 
+      const data = await response.json();
+      return { data, error: null, isError: false };
+    } catch (e) {
+      return {
+        data: null,
+        error: { message: e instanceof Error ? e.message : 'Unknown error' },
+        isError: true
+      };
+    }
+  };
 
-
+  return { analyzePicture };
+};
 
 // Function to get catalog foods with filtering
 export const useCatalogFoods = (filters: {
