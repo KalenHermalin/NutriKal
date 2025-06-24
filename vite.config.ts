@@ -28,18 +28,52 @@ export default defineConfig({
         theme_color: "#09090b",
         background_color: "#09090b"
       },
-      // Disable auto-injection of service worker
       injectRegister: null,
       // Disable service worker generation
-      disable: false,
-      // Still generate manifest
-      includeManifestIcons: true,
-      includeAssets: ['favicon.ico', '192x192.png', '512x512.png'],
-      // Development options
+      strategies: 'injectManifest',
+      registerType: 'prompt',
       devOptions: {
         enabled: true,
         type: 'module'
       },
+      includeAssets: ['192x192.png', '512x512.png'],
+
+
+      workbox: {
+        navigateFallbackDenylist: [/^\/api/],
+        globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
+
+        runtimeCaching: [
+          {
+            urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'google-fonts-cache',
+              expiration: {
+                maxEntries: 10,
+                maxAgeSeconds: 60 * 60 * 24 * 365 // <== 365 days
+              },
+              cacheableResponse: {
+                statuses: [0, 200]
+              }
+            }
+          },
+          {
+            urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'gstatic-fonts-cache',
+              expiration: {
+                maxEntries: 10,
+                maxAgeSeconds: 60 * 60 * 24 * 365 // <== 365 days
+              },
+              cacheableResponse: {
+                statuses: [0, 200]
+              },
+            }
+          }
+        ]
+      }
     }),
   ],
   optimizeDeps: {

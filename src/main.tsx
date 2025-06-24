@@ -2,7 +2,6 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 import './index.css';
-import { register, setNotificationHandler } from './registerServiceWorker';
 import { ErrorProvider, useNotification } from './components/ErrorSystem';
 
 
@@ -11,7 +10,7 @@ const ServiceWorkerInitializer = () => {
 
   React.useEffect(() => {
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/service-worker.js', { scope: '/' }).then(reg => {
+      navigator.serviceWorker.register('/sw.js', { scope: '/' }).then(reg => {
         reg.addEventListener('updatefound', () => {
           const newWorker = reg.installing
           if (newWorker) {
