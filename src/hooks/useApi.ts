@@ -1,6 +1,6 @@
-import { useQuery, useMutation } from 'react-query';
+import { useQuery } from 'react-query';
 import { Food, MealServerResponse, FoodSearchServerResponse, Serving } from '../types';
-import { useError } from '../components/ErrorSystem';
+import { useNotification } from '../components/ErrorSystem';
 
 // API error type based on OpenAPI spec
 export interface ErrorResponse {
@@ -62,7 +62,7 @@ const normalizeMealResponse = (response: any): MealServerResponse => {
 
 // Function to search for food items
 export const useSearchFood = (query: string, page: number = 0) => {
-  const { addError } = useError();
+  const { addNotifications } = useNotification();
 
   return useQuery<Food[], Error>(
     ['searchFood', query, page], async () => {
@@ -104,9 +104,9 @@ export const useSearchFood = (query: string, page: number = 0) => {
       staleTime: 5 * 60 * 1000, // 5 minutes
       onError: (error) => {
         handleApiError(error);
-        addError({
+        addNotifications({
           message: error instanceof Error ? error.message : 'Unknown search error',
-          type: 'user-recoverable'
+          type: 'user-error'
         });
       },
       // Silence React Query's console logging
@@ -115,127 +115,39 @@ export const useSearchFood = (query: string, page: number = 0) => {
   );
 };
 
-// Function to get food information by barcode
-export const useBarcodeSearch = (barcode: string) => {
-  const { addError } = useError();
-
-  return useQuery<Food, Error>(
-    ['barcode', barcode], async () => {
-      if (!barcode.trim()) throw new Error('Barcode is required');
-
-      try {
-        const response = await fetch(
-          `${API_URL}/api/barcode?code=${encodeURIComponent(barcode)}`
-        );
-
-        if (!response.ok) {
-          const errorData: ErrorResponse = await response.json().catch(() => ({
-            error: 'UNKNOWN_ERROR',
-            message: `Error ${response.status}: ${response.statusText}`
-          }));
-
-          console.info(`API Error: ${errorData.error}`, errorData);
-          throw new Error(errorData.message);
-        }
-
-        const data = await response.json();
-        // Normalize the food data to ensure consistent structure
-        return normalizeFood(data);
-      } catch (error) {
-        // Handle network errors (like "Failed to fetch")
-        console.info('Network error:', error);
-
-        // Create a user-friendly error message
-        const message = error instanceof Error
-          ? error.message
-          : 'Failed to connect to the server';
-
-        throw new Error(message);
-      }
-    },
-    {
-      enabled: barcode.trim().length > 0,
-      staleTime: 10 * 60 * 1000, // 10 minutes
-      onError: (error) => {
-        handleApiError(error);
-        addError({
-          message: error instanceof Error ? error.message : 'Failed to lookup barcode',
-          type: 'user-recoverable'
-        });
+const analyze = async (base64Image: string) => {
+  try {
+    const response = await fetch(`${API_URL}/api/picture`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
       },
-      // Silence React Query's console logging
-      useErrorBoundary: false,
+      body: JSON.stringify({ picture: base64Image }),
+    });
+    if (!response.ok) {
+      const json = await response.json();
+      throw new Error(json.message)
     }
-  );
-};
+
+    return await response.json();
+
+  } catch (e) {
+    throw e
+  }
+}
 
 // Function to analyze a food/meal picture
-export const useAnalyzePicture = () => {
+export const useAnalyzePicture = (base64Image: string) => {
   // No need for useError here as error handling is done in the component
+  return useQuery<MealServerResponse, Error>({
+    queryKey: ['analyzePicture', base64Image],
+    queryFn: () => analyze(base64Image)
+  })
+}
 
-  const mutation = useMutation<MealServerResponse, Error, string>(
-    async (base64Image: string) => {
-      try {
-        const response = await fetch(`${API_URL}/api/picture`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ picture: base64Image }),
-        });
 
-        if (!response.ok) {
-          const json = await response.json();
-          const errorData: ErrorResponse = json || {
-            error: 'UNKNOWN_ERROR',
-            message: `Error ${response.status}: ${response.statusText}`
-          };
 
-          console.info(`API Error: ${errorData.error}`, errorData);
-          throw new Error(errorData.message);
-        }
 
-        return response.json();
-      } catch (error) {
-        // Handle network errors (like "Failed to fetch")
-        console.info('Network error:', error);
-
-        // Create a user-friendly error message
-        const message = error instanceof Error
-          ? error.message
-          : 'Failed to connect to the server';
-
-        throw new Error(message);
-      }
-    },
-    {
-      onError: handleApiError,
-      // Silence React Query's console logging
-      useErrorBoundary: false,
-    }
-  );
-
-  // Return a simpler interface
-  const analyzePicture = async (base64Image: string): Promise<[MealServerResponse | null, Error | null]> => {
-    try {
-      const data = await mutation.mutateAsync(base64Image);
-      // Normalize the response to ensure consistent structure
-      const normalizedData = normalizeMealResponse(data);
-      console.log('Normalized data:', normalizedData);
-      return [normalizedData, null];
-    } catch (error) {
-      // Don't add error here since the component will handle it
-      // This prevents duplicate error messages
-      return [null, error as Error];
-    }
-  };
-
-  return {
-    analyzePicture,
-    isLoading: mutation.isLoading,
-    reset: mutation.reset,
-  };
-};
 
 // Function to get catalog foods with filtering
 export const useCatalogFoods = (filters: {
@@ -244,7 +156,7 @@ export const useCatalogFoods = (filters: {
   cuisine?: string;
   timeRange?: string;
 }) => {
-  const { addError } = useError();
+  const { addNotifications } = useNotification();
 
   return useQuery<Food[], Error>(
     ['catalogFoods', filters], async () => {
@@ -289,9 +201,9 @@ export const useCatalogFoods = (filters: {
       staleTime: 10 * 60 * 1000, // 10 minutes
       onError: (error) => {
         handleApiError(error);
-        addError({
+        addNotifications({
           message: error instanceof Error ? error.message : 'Failed to load catalog foods',
-          type: 'user-recoverable'
+          type: 'user-error'
         });
       },
       // Silence React Query's console logging

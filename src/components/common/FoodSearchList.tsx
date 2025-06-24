@@ -5,7 +5,7 @@ import { useSearchFood } from '../../hooks/useApi';
 import { useFoodTracking } from '../../hooks/useFoodTracking';
 import { Food, Serving } from '../../types';
 import LoadingSpinner from './LoadingSpinner';
-import { useError } from '../ErrorSystem';
+import { useNotification } from '../ErrorSystem';
 
 interface FoodSearchListProps {
   onFoodAdded?: () => void;
@@ -19,7 +19,7 @@ const FoodSearchList: React.FC<FoodSearchListProps> = ({ onFoodAdded }) => {
   const [isAdding, setIsAdding] = useState(false);
 
   const { addFoodToLog } = useFoodTracking();
-  const { addError } = useError();
+  const { addNotifications } = useNotification();
 
   const {
     data: foods,
@@ -31,9 +31,9 @@ const FoodSearchList: React.FC<FoodSearchListProps> = ({ onFoodAdded }) => {
   // Handle API errors through ErrorContext
   useEffect(() => {
     if (isError && error) {
-      addError({
+      addNotifications({
         message: `Food search failed: ${(error as Error).message}`,
-        type: 'user-recoverable',
+        type: 'user-error',
         userAction: {
           label: 'Retry Search',
           onClick: () => {
@@ -44,7 +44,7 @@ const FoodSearchList: React.FC<FoodSearchListProps> = ({ onFoodAdded }) => {
         }
       });
     }
-  }, [isError, error, addError, query]);
+  }, [isError, error, addNotifications, query]);
 
   const handleFoodSelect = (food: Food) => {
     setSelectedFood(food);
@@ -83,9 +83,9 @@ const FoodSearchList: React.FC<FoodSearchListProps> = ({ onFoodAdded }) => {
         setQuery('');
         onFoodAdded?.();
       } else {
-        addError({
+        addNotifications({
           message: 'Failed to add food to log. Please try again.',
-          type: 'user-recoverable',
+          type: 'user-error',
           userAction: {
             label: 'Retry',
             onClick: handleAddFood
@@ -94,9 +94,9 @@ const FoodSearchList: React.FC<FoodSearchListProps> = ({ onFoodAdded }) => {
       }
     } catch (err) {
       console.error('Error adding food:', err);
-      addError({
+      addNotifications({
         message: 'Failed to add food to log. Please check your connection and try again.',
-        type: 'user-recoverable',
+        type: 'user-error',
         userAction: {
           label: 'Retry',
           onClick: handleAddFood

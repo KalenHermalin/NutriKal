@@ -2,14 +2,13 @@ const CACHE_NAME = 'nutritrack-cache-v1';
 const urlsToCache = [
   '/',
   '/index.html',
-  '/src/main.tsx',
-  '/src/App.tsx',
-  '/src/index.css',
+  '/manifest.webmanifest',
   '/192x192.png',
   '/512x512.png',
 ];
 
 self.addEventListener('install', event => {
+  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
@@ -24,7 +23,27 @@ self.addEventListener('fetch', event => {
   if (event.request.url.includes('/api/')) {
     return;
   }
+  if (event.request.method !== 'get') return false;
 
+  if (event.request.mode === 'navigate') {
+    event.respondWith(fetch(event.request).then(response => {
+      if (response && response.status === 200) {
+        const responseToCache = response.clone();
+        caches.open(CACHE_NAME).then(cache => {
+          cache.put(event.request, responseToCache)
+        });
+        return response;
+      }
+    }).catch(() => {
+      return caches.match(event.request).then(cachedResponse => {
+        if (cachedResponse) {
+          return cachedResponse
+        }
+        return caches.match('/')
+      })
+    }))
+    return;
+  }
   event.respondWith(
     caches.match(event.request)
       .then(response => {
@@ -40,7 +59,7 @@ self.addEventListener('fetch', event => {
         return fetch(fetchRequest).then(
           response => {
             // Check if we received a valid response
-            if (!response || response.status !== 200 || response.type !== 'basic') {
+            if (!response || response.status !== 200) {
               return response;
             }
 
@@ -51,11 +70,18 @@ self.addEventListener('fetch', event => {
             caches.open(CACHE_NAME)
               .then(cache => {
                 cache.put(event.request, responseToCache);
-              });
+              }).catch(err => console.log('Cache put error:', err));
 
             return response;
           }
-        );
+        ).catch(err => {
+          console.error('Fetch failed:', err);
+          // No cache match and network failed
+          return new Response('Network error occurred', {
+            status: 408,
+            headers: { 'Content-Type': 'text/plain' }
+          });
+        });
       })
   );
 });

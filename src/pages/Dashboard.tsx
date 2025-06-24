@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Plus, Trash2, Clock } from 'lucide-react';
 import { useFoodTracking } from '../hooks/useFoodTracking';
@@ -7,15 +7,44 @@ import FoodSearchList from '../components/common/FoodSearchList';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 
 const Dashboard = () => {
-  const { 
-    dailyTracking, 
-    foodLogs, 
-    isLoading, 
-    error, 
-    removeFoodFromLog 
+  const {
+    dailyTracking,
+    foodLogs,
+    isLoading,
+    error,
+    removeFoodFromLog,
+    refreshData
   } = useFoodTracking();
 
   const [showAddFood, setShowAddFood] = React.useState(false);
+  const [circleSize, setCircleSize] = useState(70);
+
+  // Adjust circle size based on screen width
+  useEffect(() => {
+    const handleResize = () => {
+      const width = window.innerWidth;
+      if (width < 340) {
+        setCircleSize(60);
+      } else if (width < 400) {
+        setCircleSize(80);
+      } else if (width < 500) {
+        setCircleSize(90);
+      } else {
+        setCircleSize(120);
+      }
+    };
+
+    // Set initial size
+    handleResize();
+
+    // Add event listener for window resize
+    window.addEventListener('resize', handleResize);
+
+    // Clean up event listener
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, []);
 
   if (isLoading) {
     return (
@@ -55,7 +84,7 @@ const Dashboard = () => {
   return (
     <div className="space-y-6">
       {/* Daily Calories */}
-      <motion.div 
+      <motion.div
         className="card"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -65,7 +94,7 @@ const Dashboard = () => {
           <h2 className="text-lg font-semibold">Daily Calories</h2>
           <span className="text-xs text-muted">Today</span>
         </div>
-        
+
         <div className="flex justify-between items-end mb-2">
           <div>
             <p className="text-3xl font-bold">{dailyTracking.currentCalories}</p>
@@ -76,17 +105,17 @@ const Dashboard = () => {
             <p className="text-xs text-muted">calories remaining</p>
           </div>
         </div>
-        
+
         <div className="w-full bg-muted/30 rounded-full h-3 mb-4">
-          <motion.div 
+          <motion.div
             className="bg-primary h-3 rounded-full"
             initial={{ width: 0 }}
             animate={{ width: `${caloriePercentage}%` }}
             transition={{ duration: 1, ease: "easeOut" }}
           />
         </div>
-        
-        <button 
+
+        <button
           onClick={() => setShowAddFood(!showAddFood)}
           className="btn btn-primary py-2 px-4 w-full flex items-center justify-center"
         >
@@ -104,12 +133,12 @@ const Dashboard = () => {
           className="card"
         >
           <h3 className="text-lg font-semibold mb-4">Add Food to Log</h3>
-          <FoodSearchList onFoodAdded={() => setShowAddFood(false)} />
+          <FoodSearchList onFoodAdded={() => { setShowAddFood(false); refreshData() }} />
         </motion.div>
       )}
-      
+
       {/* Macronutrients */}
-      <motion.div 
+      <motion.div
         className="card"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -122,24 +151,30 @@ const Dashboard = () => {
             max={dailyTracking.proteinTarget}
             color="purple-400"
             label="Protein"
+            size={circleSize}
+            strokeWidth={circleSize < 90 ? 8 : 12}
           />
           <CircularProgress
             value={dailyTracking.currentCarbs}
             max={dailyTracking.carbsTarget}
             color="blue-400"
             label="Carbs"
+            size={circleSize}
+            strokeWidth={circleSize < 90 ? 8 : 12}
           />
           <CircularProgress
             value={dailyTracking.currentFat}
             max={dailyTracking.fatTarget}
             color="yellow-400"
             label="Fat"
+            size={circleSize}
+            strokeWidth={circleSize < 90 ? 8 : 12}
           />
         </div>
       </motion.div>
-      
+
       {/* Today's Food Log */}
-      <motion.div 
+      <motion.div
         className="card"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -149,7 +184,7 @@ const Dashboard = () => {
           <h2 className="text-lg font-semibold">Today's Food Log</h2>
           <span className="text-sm text-muted">{foodLogs.length} items</span>
         </div>
-        
+
         {foodLogs.length === 0 ? (
           <div className="text-center py-8">
             <p className="text-muted">No foods logged today</p>
@@ -160,7 +195,7 @@ const Dashboard = () => {
             {foodLogs
               .sort((a, b) => b.timestamp - a.timestamp)
               .map((log) => (
-                <motion.div 
+                <motion.div
                   key={log.id}
                   className="flex items-center justify-between p-3 rounded-xl bg-background hover:bg-muted/10 group"
                   initial={{ opacity: 0, x: -20 }}

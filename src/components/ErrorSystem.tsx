@@ -1,32 +1,32 @@
 import React, { createContext, useState, useContext, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { AlertTriangle, X, RefreshCw } from 'lucide-react';
+import { AlertTriangle, AlertCircle, X, RefreshCw } from 'lucide-react';
 
 // ===== Error Context =====
 
-type ErrorType = 'user-recoverable' | 'system-critical';
+type notificationType = 'user-error' | 'system-critical' | 'info';
 
-interface ErrorDetails {
+interface notificationDetails {
     id: string;
     message: string;
-    type: ErrorType;
+    type: notificationType;
     userAction?: {
         label: string;
         onClick: () => void;
     };
 }
 
-interface ErrorContextType {
-    errors: ErrorDetails[];
-    addError: (error: Omit<ErrorDetails, 'id'>) => void;
-    removeError: (id: string) => void;
+interface NotificationContextType {
+    notifications: notificationDetails[];
+    addNotifications: (error: Omit<notificationDetails, 'id'>) => void;
+    removeNotifications: (id: string) => void;
     showModal: (title: string, message: string) => void;
 }
 
-const ErrorContext = createContext<ErrorContextType | undefined>(undefined);
+const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
 
-export const useError = (): ErrorContextType => {
-    const context = useContext(ErrorContext);
+export const useNotification = (): NotificationContextType => {
+    const context = useContext(NotificationContext);
     if (!context) {
         throw new Error('useError must be used within an ErrorProvider');
     }
@@ -36,23 +36,30 @@ export const useError = (): ErrorContextType => {
 // ===== Error Display Component =====
 
 const ErrorDisplay: React.FC = () => {
-    const { errors, removeError } = useError();
+    const { notifications, removeNotifications } = useNotification();
 
-    const criticalErrors = errors.filter(error => error.type === 'system-critical');
-    const userRecoverableErrors = errors.filter(error => error.type === 'user-recoverable');
+    const criticalErrors = notifications.filter(noti => noti.type === 'system-critical');
+    const userErrors = notifications.filter(noti => noti.type === 'user-error');
+    const infoMessages = notifications.filter(noti => noti.type === 'info');
     // Auto-dismiss user-recoverable errors after 3 seconds
     useEffect(() => {
         const timers: number[] = [];
 
-        userRecoverableErrors.forEach((error) => {
+        userErrors.forEach((error) => {
             const timer = setTimeout(() => {
-                removeError(error.id);
+                removeNotifications(error.id);
+            }, 3000);
+            timers.push(timer);
+        });
+        infoMessages.forEach((error) => {
+            const timer = setTimeout(() => {
+                removeNotifications(error.id);
             }, 3000);
             timers.push(timer);
         });
 
         return () => timers.forEach(timer => clearTimeout(timer));
-    }, [userRecoverableErrors, removeError]);
+    }, [userErrors, infoMessages, removeNotifications]);
 
     return (
         <AnimatePresence>
@@ -81,7 +88,7 @@ const ErrorDisplay: React.FC = () => {
                                 </div>
                             </div>
                             <button
-                                onClick={() => criticalErrors.forEach(error => removeError(error.id))}
+                                onClick={() => criticalErrors.forEach(error => removeNotifications(error.id))}
                                 className="text-muted hover:text-foreground"
                             >
                                 <X size={20} />
@@ -96,7 +103,7 @@ const ErrorDisplay: React.FC = () => {
                                 Reload App
                             </button>
                             <button
-                                onClick={() => criticalErrors.forEach(error => removeError(error.id))}
+                                onClick={() => criticalErrors.forEach(error => removeNotifications(error.id))}
                                 className="btn btn-outline flex-1"
                             >
                                 Dismiss
@@ -107,20 +114,20 @@ const ErrorDisplay: React.FC = () => {
             )}
 
             {/* User Recoverable Errors Banner */}
-            {userRecoverableErrors.length > 0 && (
+            {userErrors.length > 0 && (
                 <motion.div
                     initial={{ y: -100, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
                     exit={{ y: -100, opacity: 0 }}
                     className="fixed top-4 left-4 right-4 z-[9998]"
                 >
-                    {userRecoverableErrors.map((error) => (
+                    {userErrors.map((error) => (
                         <motion.div
                             key={error.id}
                             initial={{ opacity: 0, y: -20 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -20 }}
-                            className="bg-error/10 border border-error/50 rounded-xl p-4 mb-2 flex items-center justify-between"
+                            className="bg-error/40 border border-error/50 rounded-xl p-4 mb-2 flex items-center justify-between"
                         >
                             <div className="flex items-center gap-3">
                                 <AlertTriangle className="text-error" size={20} />
@@ -131,7 +138,7 @@ const ErrorDisplay: React.FC = () => {
                                     <button
                                         onClick={() => {
                                             error.userAction!.onClick();
-                                            removeError(error.id);
+                                            removeNotifications(error.id);
                                         }}
                                         className="btn btn-outline py-1 px-3 text-xs"
                                     >
@@ -139,7 +146,51 @@ const ErrorDisplay: React.FC = () => {
                                     </button>
                                 )}
                                 <button
-                                    onClick={() => removeError(error.id)}
+                                    onClick={() => removeNotifications(error.id)}
+                                    className="text-muted hover:text-foreground"
+                                >
+                                    <X size={16} />
+                                </button>
+                            </div>
+                        </motion.div>
+                    ))}
+                </motion.div>
+            )}
+
+            {/* Info Banner */}
+            {infoMessages.length > 0 && (
+                <motion.div
+                    initial={{ y: -100, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    exit={{ y: -100, opacity: 0 }}
+                    className="fixed top-4 left-4 right-4 z-[9998]"
+                >
+                    {infoMessages.map((error) => (
+                        <motion.div
+                            key={error.id}
+                            initial={{ opacity: 0, y: -20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -20 }}
+                            className="bg-warning/40 border border-warning/50 rounded-xl p-4 mb-2 flex items-center justify-between"
+                        >
+                            <div className="flex items-center gap-3">
+                                <AlertCircle className="text-warning" size={20} />
+                                <p className="text-sm font-medium">{error.message}</p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                {error.userAction && (
+                                    <button
+                                        onClick={() => {
+                                            error.userAction!.onClick();
+                                            removeNotifications(error.id);
+                                        }}
+                                        className="btn btn-outline py-1 px-3 text-xs"
+                                    >
+                                        {error.userAction.label}
+                                    </button>
+                                )}
+                                <button
+                                    onClick={() => removeNotifications(error.id)}
                                     className="text-muted hover:text-foreground"
                                 >
                                     <X size={16} />
@@ -156,16 +207,16 @@ const ErrorDisplay: React.FC = () => {
 // ===== Error Provider =====
 
 export const ErrorProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const [errors, setErrors] = useState<ErrorDetails[]>([]);
+    const [notifications, setNotifications] = useState<notificationDetails[]>([]);
 
-    const addError = useCallback((error: Omit<ErrorDetails, 'id'>) => {
+    const addNotifications = useCallback((error: Omit<notificationDetails, 'id'>) => {
         const id = Math.random().toString(36).substring(7);
         const newError = { id, ...error };
-        setErrors(prevErrors => [...prevErrors, newError]);
+        setNotifications(prevErrors => [...prevErrors, newError]);
     }, []);
 
-    const removeError = useCallback((id: string) => {
-        setErrors(prevErrors => prevErrors.filter(error => error.id !== id));
+    const removeNotifications = useCallback((id: string) => {
+        setNotifications(prevErrors => prevErrors.filter(error => error.id !== id));
     }, []);
 
     const showModal = useCallback((title: string, message: string) => {
@@ -173,9 +224,9 @@ export const ErrorProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }, []);
 
     return (
-        <ErrorContext.Provider value={{ errors, addError, removeError, showModal }}>
+        <NotificationContext.Provider value={{ notifications, addNotifications, removeNotifications, showModal }}>
             {children}
             <ErrorDisplay />
-        </ErrorContext.Provider>
+        </NotificationContext.Provider>
     );
 };

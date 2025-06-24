@@ -4,18 +4,17 @@ import { useAnalyzePicture } from '../hooks/useApi';
 import { useNavigate } from 'react-router-dom';
 import { Food } from '../types';
 import LoadingSpinner from './common/LoadingSpinner';
-import { useError } from './ErrorSystem';
+import { useNotification } from './ErrorSystem';
 
 type CameraState = 'checking' | 'requesting' | 'active' | 'denied' | 'error' | 'stopped';
 
-const CameraScanner = ({ onBarcodeDetected }: { onBarcodeDetected?: (barcode: string) => void }) => {
+const CameraScanner = () => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const [cameraState, setCameraState] = useState<CameraState>('checking');
-  const { analyzePicture } = useAnalyzePicture();
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
-  const { addError } = useError();
+  const { addNotifications } = useNotification();
 
   const retryAccess = () => {
     setCameraState('checking');
@@ -28,7 +27,7 @@ const CameraScanner = ({ onBarcodeDetected }: { onBarcodeDetected?: (barcode: st
 
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         setCameraState('error');
-        addError({
+        addNotifications({
           message: 'Camera API not supported in this browser. Please use a modern browser.',
           type: 'system-critical'
         });
@@ -43,9 +42,9 @@ const CameraScanner = ({ onBarcodeDetected }: { onBarcodeDetected?: (barcode: st
           await startCamera();
         } else if (permission.state === 'denied') {
           setCameraState('denied');
-          addError({
+          addNotifications({
             message: 'Camera access is blocked. Please enable camera permissions in your browser settings.',
-            type: 'user-recoverable',
+            type: 'user-error',
             userAction: {
               label: 'Retry',
               onClick: retryAccess
@@ -60,7 +59,7 @@ const CameraScanner = ({ onBarcodeDetected }: { onBarcodeDetected?: (barcode: st
     } catch (err) {
       console.error('Permission check error:', err);
       setCameraState('error');
-      addError({
+      addNotifications({
         message: 'Failed to check camera permissions.',
         type: 'system-critical'
       });
@@ -112,7 +111,7 @@ const CameraScanner = ({ onBarcodeDetected }: { onBarcodeDetected?: (barcode: st
               .catch(err => {
                 console.error('Error playing video:', err);
                 setCameraState('error');
-                addError({
+                addNotifications({
                   message: 'Failed to display camera feed.',
                   type: 'system-critical'
                 });
@@ -128,9 +127,9 @@ const CameraScanner = ({ onBarcodeDetected }: { onBarcodeDetected?: (barcode: st
       if (err instanceof Error) {
         if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
           setCameraState('denied');
-          addError({
+          addNotifications({
             message: 'Camera access denied. Please allow camera permissions and try again.',
-            type: 'user-recoverable',
+            type: 'user-error',
             userAction: {
               label: 'Retry',
               onClick: retryAccess
@@ -138,15 +137,15 @@ const CameraScanner = ({ onBarcodeDetected }: { onBarcodeDetected?: (barcode: st
           });
         } else if (err.name === 'NotFoundError') {
           setCameraState('error');
-          addError({
+          addNotifications({
             message: 'No camera found on this device.',
             type: 'system-critical'
           });
         } else if (err.name === 'NotReadableError') {
           setCameraState('error');
-          addError({
+          addNotifications({
             message: 'Camera is already in use by another application.',
-            type: 'user-recoverable',
+            type: 'user-error',
             userAction: {
               label: 'Retry',
               onClick: retryAccess
@@ -154,14 +153,14 @@ const CameraScanner = ({ onBarcodeDetected }: { onBarcodeDetected?: (barcode: st
           });
         } else {
           setCameraState('error');
-          addError({
+          addNotifications({
             message: `Camera error: ${err.message}`,
             type: 'system-critical'
           });
         }
       } else {
         setCameraState('error');
-        addError({
+        addNotifications({
           message: 'An unknown camera error occurred.',
           type: 'system-critical'
         });
@@ -181,11 +180,11 @@ const CameraScanner = ({ onBarcodeDetected }: { onBarcodeDetected?: (barcode: st
         const base64Image = canvas.toDataURL('image/jpeg').split(',')[1];
 
         try {
-          const [data, error] = await analyzePicture(base64Image);
-          if (error) {
-            addError({
+          const { data, error, isError } = await useAnalyzePicture(base64Image);
+          if (isError) {
+            addNotifications({
               message: error.message,
-              type: 'user-recoverable',
+              type: 'user-error',
               userAction: {
                 label: 'Try Again',
                 onClick: takePhoto
@@ -210,9 +209,9 @@ const CameraScanner = ({ onBarcodeDetected }: { onBarcodeDetected?: (barcode: st
             });
           } else {
             console.warn('No ingredients found in the analysis result.');
-            addError({
+            addNotifications({
               message: 'No food detected. Try taking a clearer picture with better lighting.',
-              type: 'user-recoverable',
+              type: 'user-error',
               userAction: {
                 label: 'Try Again',
                 onClick: takePhoto
@@ -221,9 +220,9 @@ const CameraScanner = ({ onBarcodeDetected }: { onBarcodeDetected?: (barcode: st
             setIsLoading(false);
           }
         } catch (error) {
-          addError({
+          addNotifications({
             message: 'Failed to analyze the picture. Please check your internet connection and try again.',
-            type: 'user-recoverable',
+            type: 'user-error',
             userAction: {
               label: 'Retry',
               onClick: takePhoto
@@ -232,7 +231,7 @@ const CameraScanner = ({ onBarcodeDetected }: { onBarcodeDetected?: (barcode: st
           setIsLoading(false);
         }
       } else {
-        addError({
+        addNotifications({
           message: 'Failed to process the image. Please try again.',
           type: 'system-critical'
         });
@@ -295,10 +294,29 @@ const CameraScanner = ({ onBarcodeDetected }: { onBarcodeDetected?: (barcode: st
         )}
       </div>
 
-      {cameraState === 'requesting' && <div className="overlay">Requesting camera permission...</div>}
+      {cameraState === 'requesting' && (
+        <RequestiongCamereaComp />
+      )}
       {cameraState === 'denied' && <div className="overlay">No access to camera. Please allow in settings.</div>}
     </div>
   );
 };
 
+
+const RequestiongCamereaComp = () => {
+  const { addNotifications } = useNotification()
+  useEffect(() => {
+    console.log("Notifiying")
+    addNotifications({
+      message: "Requesting camera access...",
+      type: "info"
+    })
+  }, [])
+  return (
+    <div className="flex flex-col items-center justify-center">
+      <LoadingSpinner size={128} color='#333' />
+      <p className="mt-4 text-center text-gray-700">Requesting camera access...</p>
+    </div>
+  )
+}
 export default CameraScanner;
