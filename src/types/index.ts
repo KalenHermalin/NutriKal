@@ -35,6 +35,7 @@ export interface Food {
   food_name: string;
   brand_name: string;
   servings: Serving[];
+  quantity?: string;
 }
 
 export interface Ingredient {
