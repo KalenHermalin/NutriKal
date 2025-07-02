@@ -198,7 +198,8 @@ const CameraScanner = () => {
           console.log("CamScan: ", data);
 
           if (data && data.ingredients && data.ingredients.length >= 1) {
-            navigate('/food', {
+            // Navigate to the meal details page with proper structure
+            navigate('/meal', {
               state: { meal: data.ingredients }
             });
           } else {
