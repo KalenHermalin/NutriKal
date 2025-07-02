@@ -198,9 +198,9 @@ const CameraScanner = () => {
           console.log("CamScan: ", data);
 
           if (data && data.ingredients && data.ingredients.length >= 1) {
-            // Navigate to the meal details page with proper structure
-            navigate('/meal', {
-              state: { meal: data.ingredients }
+            // Navigate to the food details page with proper structure
+            navigate('/food', {
+              state: { mealData: data }
             });
           } else {
             console.warn('No ingredients found in the analysis result.');

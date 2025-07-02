@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Plus, ArrowLeft, Info, List, Minus } from 'lucide-react';
 import NutritionCard from '../components/common/NutritionCard';
 import LoadingSpinner from '../components/common/LoadingSpinner';
@@ -9,44 +9,38 @@ interface FoodDetailsProps {
   mealData?: MealServerResponse;
 }
 
-interface FoodWithQuantity extends Food {
-  currentQuantity: number;
-  selectedServingIndex: number;
-}
-
 const FoodDetails: React.FC<FoodDetailsProps> = ({ mealData: propMealData }) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const params = useParams<{ foodId: string }>();
   const [activeTab, setActiveTab] = useState<'nutrition' | 'servings'>('nutrition');
 
   // Get meal data from props or location state
   const mealData = propMealData || (location.state?.mealData as MealServerResponse);
 
   // State for managing food quantities and serving selections
-  const [foodsWithQuantity, setFoodsWithQuantity] = useState<FoodWithQuantity[]>([]);
+  const [foods, setFoods] = useState<Food[]>([]);
 
-  // Initialize foods with quantities
+  // Initialize foods with quantities and serving selections
   useEffect(() => {
     if (mealData?.ingredients) {
       const initializedFoods = mealData.ingredients.map((food) => ({
         ...food,
-        currentQuantity: parseFloat(food.quantity || '1'),
-        selectedServingIndex: 0,
+        quantity: food.quantity || '1',
+        selectedServing: food.selectedServing || 0,
       }));
-      setFoodsWithQuantity(initializedFoods);
+      setFoods(initializedFoods);
     }
   }, [mealData]);
 
   // Redirect if no data available
   useEffect(() => {
     if (!mealData && !propMealData) {
-      console.error('No meal data available', { locationState: location.state, params });
+      console.error('No meal data available', { locationState: location.state });
       navigate('/search', { replace: true });
     }
-  }, [mealData, navigate, propMealData, location.state, params]);
+  }, [mealData, navigate, propMealData, location.state]);
 
-  if (!mealData || foodsWithQuantity.length === 0) {
+  if (!mealData || foods.length === 0) {
     return (
       <div className="flex justify-center items-center h-64">
         <LoadingSpinner text="Loading food details..." />
@@ -57,18 +51,18 @@ const FoodDetails: React.FC<FoodDetailsProps> = ({ mealData: propMealData }) => 
   // Update quantity for a specific food
   const updateQuantity = (foodIndex: number, newQuantity: number) => {
     if (newQuantity <= 0) return;
-    setFoodsWithQuantity(prev =>
+    setFoods(prev =>
       prev.map((food, index) =>
-        index === foodIndex ? { ...food, currentQuantity: newQuantity } : food
+        index === foodIndex ? { ...food, quantity: newQuantity.toString() } : food
       )
     );
   };
 
   // Update serving selection for a specific food
   const updateServingSelection = (foodIndex: number, servingIndex: number) => {
-    setFoodsWithQuantity(prev =>
+    setFoods(prev =>
       prev.map((food, index) =>
-        index === foodIndex ? { ...food, selectedServingIndex: servingIndex } : food
+        index === foodIndex ? { ...food, selectedServing: servingIndex } : food
       )
     );
   };
@@ -80,10 +74,10 @@ const FoodDetails: React.FC<FoodDetailsProps> = ({ mealData: propMealData }) => 
     let totalCarbs = 0;
     let totalFat = 0;
 
-    foodsWithQuantity.forEach((food) => {
-      const serving = food.servings[food.selectedServingIndex];
+    foods.forEach((food) => {
+      const serving = food.servings[food.selectedServing];
       if (serving) {
-        const quantity = food.currentQuantity;
+        const quantity = parseFloat(food.quantity || '1');
         totalCalories += (parseFloat(serving.calories) || 0) * quantity;
         totalProtein += (parseFloat(serving.protein) || 0) * quantity;
         totalCarbs += (parseFloat(serving.carbohydrate) || 0) * quantity;
@@ -102,7 +96,7 @@ const FoodDetails: React.FC<FoodDetailsProps> = ({ mealData: propMealData }) => 
   };
 
   const totalMacros = calculateTotalMacros();
-  const isMeal = foodsWithQuantity.length > 1;
+  const isMeal = foods.length > 1;
 
   return (
     <div className="space-y-6 pb-20">
@@ -123,16 +117,16 @@ const FoodDetails: React.FC<FoodDetailsProps> = ({ mealData: propMealData }) => 
         <div className="flex items-start justify-between mb-4">
           <div>
             <h2 className="text-xl font-semibold text-gray-800">
-              {isMeal ? mealData.meal_name || 'Custom Meal' : foodsWithQuantity[0]?.food_name}
+              {isMeal ? mealData.meal_name || 'Custom Meal' : foods[0]?.food_name}
             </h2>
-            {!isMeal && foodsWithQuantity[0]?.brand_name && (
-              <p className="text-sm text-gray-600">{foodsWithQuantity[0].brand_name}</p>
+            {!isMeal && foods[0]?.brand_name && (
+              <p className="text-sm text-gray-600">{foods[0].brand_name}</p>
             )}
           </div>
           <div className="text-right">
             <p className="font-semibold text-gray-800">{Math.round(totalMacros.calories)} cal</p>
             <p className="text-xs text-gray-600">
-              {isMeal ? `${foodsWithQuantity.length} ingredients` : 'Total'}
+              {isMeal ? `${foods.length} ingredients` : 'Total'}
             </p>
           </div>
         </div>
@@ -173,9 +167,10 @@ const FoodDetails: React.FC<FoodDetailsProps> = ({ mealData: propMealData }) => 
       {isMeal && (
         <div className="space-y-4">
           <h3 className="text-lg font-semibold text-gray-800">Ingredients</h3>
-          {foodsWithQuantity.map((food, foodIndex) => {
-            const serving = food.servings[food.selectedServingIndex];
-            const foodCalories = (parseFloat(serving?.calories || '0')) * food.currentQuantity;
+          {foods.map((food, foodIndex) => {
+            const serving = food.servings[food.selectedServing];
+            const quantity = parseFloat(food.quantity || '1');
+            const foodCalories = (parseFloat(serving?.calories || '0')) * quantity;
 
             return (
               <div key={food.food_id} className="bg-white rounded-lg shadow-md p-4">
@@ -195,22 +190,22 @@ const FoodDetails: React.FC<FoodDetailsProps> = ({ mealData: propMealData }) => 
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center space-x-3">
                     <button
-                      onClick={() => updateQuantity(foodIndex, food.currentQuantity - 0.5)}
+                      onClick={() => updateQuantity(foodIndex, quantity - 0.5)}
                       className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
-                      disabled={food.currentQuantity <= 0.5}
+                      disabled={quantity <= 0.5}
                     >
                       <Minus size={14} className="text-gray-600" />
                     </button>
                     <input
                       type="number"
-                      value={food.currentQuantity}
+                      value={quantity}
                       onChange={(e) => updateQuantity(foodIndex, parseFloat(e.target.value) || 1)}
                       className="w-20 px-2 py-1 text-center border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       min="0.1"
                       step="0.1"
                     />
                     <button
-                      onClick={() => updateQuantity(foodIndex, food.currentQuantity + 0.5)}
+                      onClick={() => updateQuantity(foodIndex, quantity + 0.5)}
                       className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
                     >
                       <Plus size={14} className="text-gray-600" />
@@ -221,7 +216,7 @@ const FoodDetails: React.FC<FoodDetailsProps> = ({ mealData: propMealData }) => 
                   {food.servings.length > 1 && (
                     <select
                       className="px-3 py-1 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      value={food.selectedServingIndex}
+                      value={food.selectedServing}
                       onChange={(e) => updateServingSelection(foodIndex, parseInt(e.target.value))}
                     >
                       {food.servings.map((serving: Serving, index: number) => (
@@ -245,22 +240,22 @@ const FoodDetails: React.FC<FoodDetailsProps> = ({ mealData: propMealData }) => 
             <h3 className="text-lg font-semibold text-gray-800">Quantity</h3>
             <div className="flex items-center space-x-3">
               <button
-                onClick={() => updateQuantity(0, foodsWithQuantity[0].currentQuantity - 0.5)}
+                onClick={() => updateQuantity(0, parseFloat(foods[0]?.quantity || '1') - 0.5)}
                 className="w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
-                disabled={foodsWithQuantity[0]?.currentQuantity <= 0.5}
+                disabled={parseFloat(foods[0]?.quantity || '1') <= 0.5}
               >
                 <Minus size={16} className="text-gray-600" />
               </button>
               <input
                 type="number"
-                value={foodsWithQuantity[0]?.currentQuantity || 1}
+                value={parseFloat(foods[0]?.quantity || '1')}
                 onChange={(e) => updateQuantity(0, parseFloat(e.target.value) || 1)}
                 className="w-24 px-3 py-2 text-center border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 min="0.1"
                 step="0.1"
               />
               <button
-                onClick={() => updateQuantity(0, foodsWithQuantity[0].currentQuantity + 0.5)}
+                onClick={() => updateQuantity(0, parseFloat(foods[0]?.quantity || '1') + 0.5)}
                 className="w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
               >
                 <Plus size={16} className="text-gray-600" />
@@ -269,15 +264,15 @@ const FoodDetails: React.FC<FoodDetailsProps> = ({ mealData: propMealData }) => 
           </div>
 
           {/* Serving Selector for Single Food */}
-          {foodsWithQuantity[0]?.servings.length > 1 && (
+          {foods[0]?.servings.length > 1 && (
             <div>
               <label className="block text-sm font-medium mb-2 text-gray-700">Serving Size</label>
               <select
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                value={foodsWithQuantity[0]?.selectedServingIndex || 0}
+                value={foods[0]?.selectedServing || 0}
                 onChange={(e) => updateServingSelection(0, parseInt(e.target.value))}
               >
-                {foodsWithQuantity[0]?.servings.map((serving: Serving, index: number) => (
+                {foods[0]?.servings.map((serving: Serving, index: number) => (
                   <option key={serving.serving_id || index} value={index}>
                     {serving.serving_description || serving.measurement_description || `Serving ${index + 1}`}
                   </option>
@@ -319,8 +314,9 @@ const FoodDetails: React.FC<FoodDetailsProps> = ({ mealData: propMealData }) => 
       {/* Tab Content */}
       {activeTab === 'nutrition' && (
         <div className="space-y-6">
-          {foodsWithQuantity.map((food) => {
-            const serving = food.servings[food.selectedServingIndex];
+          {foods.map((food) => {
+            const serving = food.servings[food.selectedServing];
+            const quantity = parseFloat(food.quantity || '1');
             return (
               <div key={food.food_id}>
                 {isMeal && (
@@ -330,7 +326,7 @@ const FoodDetails: React.FC<FoodDetailsProps> = ({ mealData: propMealData }) => 
                 )}
                 <NutritionCard
                   serving={serving}
-                  quantity={food.currentQuantity}
+                  quantity={quantity}
                 />
               </div>
             );
@@ -340,7 +336,7 @@ const FoodDetails: React.FC<FoodDetailsProps> = ({ mealData: propMealData }) => 
 
       {activeTab === 'servings' && (
         <div className="space-y-6">
-          {foodsWithQuantity.map((food, foodIndex) => (
+          {foods.map((food, foodIndex) => (
             <div key={food.food_id} className="bg-white rounded-lg shadow-md p-6">
               {isMeal && (
                 <h4 className="text-md font-medium text-gray-800 mb-4">
@@ -352,7 +348,7 @@ const FoodDetails: React.FC<FoodDetailsProps> = ({ mealData: propMealData }) => 
               <div className="space-y-3">
                 <div className="flex justify-between">
                   <span className="text-gray-600">Current Quantity</span>
-                  <span className="font-medium text-gray-800">{food.currentQuantity}</span>
+                  <span className="font-medium text-gray-800">{food.quantity}</span>
                 </div>
 
                 {food.servings.length > 1 && (
@@ -362,7 +358,7 @@ const FoodDetails: React.FC<FoodDetailsProps> = ({ mealData: propMealData }) => 
                       {food.servings.map((serving: Serving, index: number) => (
                         <div
                           key={serving.serving_id || index}
-                          className={`p-3 rounded-lg border cursor-pointer transition-colors ${index === food.selectedServingIndex
+                          className={`p-3 rounded-lg border cursor-pointer transition-colors ${index === food.selectedServing
                             ? 'border-blue-600 bg-blue-50'
                             : 'border-gray-200 hover:bg-gray-50'
                             }`}
