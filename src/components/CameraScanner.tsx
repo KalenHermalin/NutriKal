@@ -197,15 +197,8 @@ const CameraScanner = () => {
 
           console.log("CamScan: ", data);
 
-          if (data && data.ingredients && data.ingredients.length === 1) {
-            const food: Food = data.ingredients[0];
-            // Make sure we're passing the food object correctly
-            navigate(`/food/${food.food_id}`, {
-              state: { food }
-            });
-          } else if (data && data.ingredients && data.ingredients.length > 1) {
-            // Pass the entire meal array as state
-            navigate('/meal', {
+          if (data && data.ingredients && data.ingredients.length >= 1) {
+            navigate('/food', {
               state: { meal: data.ingredients }
             });
           } else {
