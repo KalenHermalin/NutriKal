@@ -197,10 +197,16 @@ const CameraScanner = () => {
 
           console.log("CamScan: ", data);
 
-          if (data && data.ingredients && data.ingredients.length >= 1) {
-            // Navigate to the food details page with proper structure
-            navigate('/food', {
-              state: { mealData: data }
+          if (data && data.ingredients && data.ingredients.length === 1) {
+            const food: Food = data.ingredients[0];
+            // Make sure we're passing the food object correctly
+            navigate(`/food/${food.food_id}`, {
+              state: { food }
+            });
+          } else if (data && data.ingredients && data.ingredients.length > 1) {
+            // Pass the entire meal array as state
+            navigate('/meal', {
+              state: { meal: data.ingredients }
             });
           } else {
             console.warn('No ingredients found in the analysis result.');
