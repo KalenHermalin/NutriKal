@@ -31,11 +31,11 @@ export interface Serving {
 }
 
 export interface Food {
-  food_id: number;
+  food_id?: number;
   food_name: string;
-  brand_name: string;
+  brand_name?: string;
   servings: Serving[];
-  selectedServing: number;
+  selectedServing?: number;
   quantity?: string;
 }
 

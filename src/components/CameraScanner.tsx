@@ -233,7 +233,6 @@ const CameraScanner = () => {
     }
   };
 
-
   useEffect(() => {
     checkPermissions();
     // Cleanup on unmount

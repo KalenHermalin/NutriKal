@@ -27,11 +27,16 @@ const FoodDetails: React.FC<FoodDetailsProps> = () => {
   // Initialize foods with quantities and serving selections
   useEffect(() => {
     if (mealData?.ingredients) {
-      const initializedFoods = mealData.ingredients.map((food) => ({
-        ...food,
-        quantity: food.quantity || '1',
-        selectedServing: food.selectedServing || 0,
-      }));
+      console.log('Initializing foods with mealData:', mealData);
+      const initializedFoods = mealData.ingredients.map((food) => {
+        // Ensure we have a valid selectedServing index
+        const hasServings = food.servings && food.servings.length > 0;
+        return {
+          ...food,
+          quantity: food.quantity || '1',
+          selectedServing: hasServings ? (food.selectedServing || 0) : 0,
+        };
+      });
       setFoods(initializedFoods);
       
       // Initialize quantities
@@ -52,10 +57,35 @@ const FoodDetails: React.FC<FoodDetailsProps> = () => {
     }
   }, [mealData, navigate, location.state]);
 
-  if (!mealData || foods.length === 0) {
+  // Add more detailed loading check
+  if (!mealData) {
+    console.log('No mealData found, redirecting...');
     return (
       <div className="flex justify-center items-center h-64">
         <LoadingSpinner text="Loading food details..." />
+      </div>
+    );
+  }
+
+  if (!mealData.ingredients || mealData.ingredients.length === 0) {
+    console.log('No ingredients found in mealData:', mealData);
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="text-center">
+          <p className="text-red-500">Error: No ingredients found</p>
+          <Link to="/search" className="btn btn-primary mt-4">
+            Back to Search
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  if (foods.length === 0) {
+    console.log('Foods array is empty, still initializing...');
+    return (
+      <div className="flex justify-center items-center h-64">
+        <LoadingSpinner text="Initializing food details..." />
       </div>
     );
   }
@@ -72,10 +102,12 @@ const FoodDetails: React.FC<FoodDetailsProps> = () => {
       
       if (food.servings && food.servings.length > 0) {
         const serving = food.servings[food.selectedServing || 0];
-        totalCalories += (parseFloat(serving.calories) || 0) * quantity;
-        totalProtein += (parseFloat(serving.protein) || 0) * quantity;
-        totalCarbs += (parseFloat(serving.carbohydrate) || 0) * quantity;
-        totalFat += (parseFloat(serving.fat) || 0) * quantity;
+        if (serving) {
+          totalCalories += (parseFloat(serving.calories) || 0) * quantity;
+          totalProtein += (parseFloat(serving.protein) || 0) * quantity;
+          totalCarbs += (parseFloat(serving.carbohydrate) || 0) * quantity;
+          totalFat += (parseFloat(serving.fat) || 0) * quantity;
+        }
       }
     });
 
@@ -95,7 +127,7 @@ const FoodDetails: React.FC<FoodDetailsProps> = () => {
 
   // Function to update quantity for a specific food item
   const updateQuantity = (foodKey: string, newQuantity: number) => {
-    if (newQuantity > 0) {
+    if (newQuantity >= 0) {
       setQuantities(prev => ({
         ...prev,
         [foodKey]: newQuantity
@@ -197,7 +229,9 @@ const FoodDetails: React.FC<FoodDetailsProps> = () => {
 
         {/* Add to Diary Button */}
         <div className="flex justify-end">
-          <button className="btn btn-primary py-2 px-4">
+          <button className="btn btn-primary py-2 px-4" onClick={() => {
+            //TODO: Implement add to diary functionality
+          }}>
             <Plus size={16} className="mr-2" />
             {isMeal ? 'Add Entire Meal to Diary' : 'Add to Diary'}
           </button>
@@ -214,7 +248,9 @@ const FoodDetails: React.FC<FoodDetailsProps> = () => {
           const foodKey = `${food.food_id || index}`;
           const quantity = quantities[foodKey] || 1;
           
-          if (!food.servings || food.servings.length === 0) {
+          // Check if food has servings array and it's not empty
+          if (!food.servings || !Array.isArray(food.servings) || food.servings.length === 0) {
+            console.warn('Food missing servings:', food);
             return (
               <motion.div
                 key={food.food_id || `food-${index}`}
@@ -223,16 +259,42 @@ const FoodDetails: React.FC<FoodDetailsProps> = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: index * 0.1 }}
               >
-                <h3 className="text-lg font-medium">{food.food_name}</h3>
+                <h3 className="text-lg font-medium">{food.food_name || 'Unknown Food'}</h3>
                 {food.brand_name && (
                   <p className="text-sm text-muted">{food.brand_name}</p>
                 )}
                 <p className="text-red-500 mt-2">Error: Missing serving information</p>
+                <pre className="text-xs mt-2 text-gray-500">{JSON.stringify(food, null, 2)}</pre>
               </motion.div>
             );
           }
 
-          const serving = food.servings[food.selectedServing || 0];
+          // Ensure selectedServing is within bounds, default to 0 (first serving)
+          const selectedServingIndex = Math.max(0, Math.min(food.selectedServing || 0, food.servings.length - 1));
+          const serving = food.servings[selectedServingIndex];
+          
+          if (!serving) {
+            console.warn('Selected serving not found:', { 
+              food, 
+              selectedServing: food.selectedServing, 
+              servingsLength: food.servings.length,
+              calculatedIndex: selectedServingIndex 
+            });
+            return (
+              <motion.div
+                key={food.food_id || `food-${index}`}
+                className="card"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: index * 0.1 }}
+              >
+                <h3 className="text-lg font-medium">{food.food_name || 'Unknown Food'}</h3>
+                <p className="text-red-500 mt-2">Error: Invalid serving selection</p>
+                <p className="text-xs mt-1">Available servings: {food.servings.length}</p>
+                <p className="text-xs">Selected index: {selectedServingIndex}</p>
+              </motion.div>
+            );
+          }
           
           // Calculate nutrition values with quantity
           const protein = (parseFloat(serving.protein) || 0) * quantity;
@@ -273,13 +335,13 @@ const FoodDetails: React.FC<FoodDetailsProps> = () => {
                 <div className="mt-4">
                   <label className="block text-sm font-medium mb-2">Serving Size:</label>
                   <select
-                    value={food.selectedServing || 0}
+                    value={selectedServingIndex}
                     onChange={(e) => updateServing(index, parseInt(e.target.value))}
                     className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-background"
                   >
                     {food.servings.map((servingOption, servingIndex) => (
                       <option key={servingIndex} value={servingIndex}>
-                        {servingOption.serving_description} ({servingOption.measurement_description})
+                        {servingOption.serving_description}
                       </option>
                     ))}
                   </select>
