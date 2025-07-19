@@ -46,9 +46,11 @@ export interface Ingredient {
 
 export interface MealAnalysisResponse {
   success: boolean;
+  // TODO: change to use Meal interface in backend so i can change it here
   meal_name: string;
   ingredients: Ingredient[];
 }
+
 
 export interface MealServerResponse {
   success: boolean;

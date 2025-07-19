@@ -6,6 +6,7 @@ import { useFoodTracking } from '../../hooks/useFoodTracking';
 import { Food, Serving } from '../../types';
 import LoadingSpinner from './LoadingSpinner';
 import { useNotification } from '../ErrorSystem';
+import { FoodLog } from '../../utils/indexedDB';
 
 interface FoodSearchListProps {
   onFoodAdded?: () => void;
@@ -66,16 +67,20 @@ const FoodSearchList: React.FC<FoodSearchListProps> = ({ onFoodAdded }) => {
       const carbs = Math.round(parseFloat(selectedServing.carbohydrate) * quantity * 10) / 10;
       const fat = Math.round(parseFloat(selectedServing.fat) * quantity * 10) / 10;
 
-      const success = await addFoodToLog(
-        selectedFood.food_id,
-        selectedFood.food_name,
-        selectedFood.brand_name,
-        `${quantity} × ${selectedServing.serving_description || selectedServing.measurement_description}`,
+      const newLog: FoodLog = {
+        id: `log_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        date: new Date().toISOString().split('T')[0],
+        foodId: selectedFood.food_id || 0,
+        foodName: selectedFood.food_name,
+        brandName: selectedFood.brand_name,
+        servingSize: `${quantity} × ${selectedServing.serving_description || selectedServing.measurement_description}`,
         calories,
         protein,
         carbs,
-        fat
-      );
+        fat,
+        timestamp: Date.now()
+      }
+      const success = await addFoodToLog('', [newLog])
 
       if (success) {
         setSelectedFood(null);

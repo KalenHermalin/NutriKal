@@ -115,6 +115,32 @@ export const useSearchFood = (query: string, page: number = 0) => {
   );
 };
 
+export const useScanBarcode = () => {
+  const scanBarcode = async (barcode: string) => {
+    try {
+      const response = await fetch(`${API_URL}/api/barcode?barcode=${encodeURIComponent(barcode)}`);
+
+      if (!response.ok) {
+        const json = await response.json();
+        return {
+          data: null,
+          error: { message: json.message || 'Failed to scan barcode' },
+          isError: true
+        };
+      }
+      const data = await response.json();
+      return { data, error: null, isError: false };
+
+    } catch (e) {
+      return {
+        data: null,
+        error: { message: e instanceof Error ? e.message : 'Unknown error' },
+        isError: true
+      };
+    }
+  }
+  return { scanBarcode }
+}
 // Function to analyze a food/meal picture
 export const useAnalyzePicture = () => {
   const analyzePicture = async (base64Image: string) => {

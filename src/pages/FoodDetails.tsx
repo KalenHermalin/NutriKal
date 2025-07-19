@@ -6,6 +6,7 @@ import { useFoodTracking } from '../hooks/useFoodTracking';
 import NutritionCard from '../components/common/NutritionCard';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import { MealServerResponse, Food, Serving } from '../types';
+import { FoodLog } from '../utils/indexedDB';
 
 interface FoodDetailsProps {
   mealData?: MealServerResponse;
@@ -17,7 +18,7 @@ const FoodDetails: React.FC<FoodDetailsProps> = () => {
 
   const mealData = location.state?.mealData as MealServerResponse;
   const isMeal = mealData?.ingredients?.length > 1;
-  
+
   // State for managing food quantities and serving selections
   const [foods, setFoods] = useState<Food[]>([]);
   const [quantities, setQuantities] = useState<{ [key: string]: number }>({});
@@ -38,7 +39,7 @@ const FoodDetails: React.FC<FoodDetailsProps> = () => {
         };
       });
       setFoods(initializedFoods);
-      
+
       // Initialize quantities
       const initialQuantities: { [key: string]: number } = {};
       initializedFoods.forEach((food, index) => {
@@ -99,7 +100,7 @@ const FoodDetails: React.FC<FoodDetailsProps> = () => {
     foods.forEach((food, index) => {
       const key = `${food.food_id || index}`;
       const quantity = quantities[key] || 1;
-      
+
       if (food.servings && food.servings.length > 0) {
         const serving = food.servings[food.selectedServing || 0];
         if (serving) {
@@ -137,8 +138,8 @@ const FoodDetails: React.FC<FoodDetailsProps> = () => {
 
   // Function to update serving selection
   const updateServing = (foodIndex: number, servingIndex: number) => {
-    setFoods(prev => prev.map((food, index) => 
-      index === foodIndex 
+    setFoods(prev => prev.map((food, index) =>
+      index === foodIndex
         ? { ...food, selectedServing: servingIndex }
         : food
     ));
@@ -230,7 +231,25 @@ const FoodDetails: React.FC<FoodDetailsProps> = () => {
         {/* Add to Diary Button */}
         <div className="flex justify-end">
           <button className="btn btn-primary py-2 px-4" onClick={() => {
-            //TODO: Implement add to diary functionality
+            const foodLogs: FoodLog[] = foods.map((food) => {
+              return {
+                id: `log_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                date: new Date().toISOString().split('T')[0],
+                foodId: food.food_id || 0,
+                foodName: food.food_name,
+                brandName: food.brand_name,
+                servingSize: food.servings[food.selectedServing || 0].serving_description,
+                calories: parseFloat(macros.calories),
+                protein: parseFloat(macros.protein),
+                carbs: parseFloat(macros.carbs),
+                fat: parseFloat(macros.fat),
+                timestamp: Date.now()
+              };
+            });
+            addFoodToLog(
+              isMeal ? mealData.meal_name : foods[0]?.food_name,
+              foodLogs
+            );
           }}>
             <Plus size={16} className="mr-2" />
             {isMeal ? 'Add Entire Meal to Diary' : 'Add to Diary'}
@@ -242,12 +261,12 @@ const FoodDetails: React.FC<FoodDetailsProps> = () => {
       {isMeal && (
         <h2 className="text-lg font-semibold mt-8 mb-4">Food Items</h2>
       )}
-      
+
       <div className="space-y-4">
         {foods.map((food, index) => {
           const foodKey = `${food.food_id || index}`;
           const quantity = quantities[foodKey] || 1;
-          
+
           // Check if food has servings array and it's not empty
           if (!food.servings || !Array.isArray(food.servings) || food.servings.length === 0) {
             console.warn('Food missing servings:', food);
@@ -272,13 +291,13 @@ const FoodDetails: React.FC<FoodDetailsProps> = () => {
           // Ensure selectedServing is within bounds, default to 0 (first serving)
           const selectedServingIndex = Math.max(0, Math.min(food.selectedServing || 0, food.servings.length - 1));
           const serving = food.servings[selectedServingIndex];
-          
+
           if (!serving) {
-            console.warn('Selected serving not found:', { 
-              food, 
-              selectedServing: food.selectedServing, 
+            console.warn('Selected serving not found:', {
+              food,
+              selectedServing: food.selectedServing,
               servingsLength: food.servings.length,
-              calculatedIndex: selectedServingIndex 
+              calculatedIndex: selectedServingIndex
             });
             return (
               <motion.div
@@ -295,7 +314,7 @@ const FoodDetails: React.FC<FoodDetailsProps> = () => {
               </motion.div>
             );
           }
-          
+
           // Calculate nutrition values with quantity
           const protein = (parseFloat(serving.protein) || 0) * quantity;
           const carbs = (parseFloat(serving.carbohydrate) || 0) * quantity;

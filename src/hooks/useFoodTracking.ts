@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
-import { foodTrackingDB, DailyTracking, UserSettings, FoodLog } from '../utils/indexedDB';
+import { foodTrackingDB, DailyTracking, UserSettings, FoodLog, MealLog } from '../utils/indexedDB';
 
 export const useFoodTracking = () => {
   const [dailyTracking, setDailyTracking] = useState<DailyTracking | null>(null);
   const [userSettings, setUserSettings] = useState<UserSettings | null>(null);
-  const [foodLogs, setFoodLogs] = useState<FoodLog[]>([]);
+  const [foodLogs, setFoodLogs] = useState<MealLog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -55,30 +55,24 @@ export const useFoodTracking = () => {
   };
 
   const addFoodToLog = async (
-    foodId: number,
-    foodName: string,
-    brandName: string | undefined,
-    servingSize: string,
-    calories: number,
-    protein: number,
-    carbs: number,
-    fat: number
-  ) => {
+
+    meal_name: string,
+    ingredients: FoodLog[],
+    ) => {
     try {
-      const newLog: FoodLog = {
+      const newLog: MealLog = {
         id: `log_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         date: today,
-        foodId,
-        foodName,
-        brandName,
-        servingSize,
-        calories,
-        protein,
-        carbs,
-        fat,
+        meal: {
+          meal_name,
+          ingredients
+        } ,
         timestamp: Date.now(),
       };
-
+      const calories = ingredients.reduce((sum, item) => sum + item.calories, 0);
+      const protein = ingredients.reduce((sum, item) => sum + item.protein, 0);
+      const carbs = ingredients.reduce((sum, item) => sum + item.carbs, 0);
+      const fat = ingredients.reduce((sum, item) => sum + item.fat, 0);
       await foodTrackingDB.addFoodLog(newLog);
       await foodTrackingDB.updateDailyTotals(today, calories, protein, carbs, fat);
 
@@ -101,14 +95,17 @@ export const useFoodTracking = () => {
     try {
       const log = foodLogs.find(l => l.id === logId);
       if (!log) return false;
-
+      const calories = log.meal.ingredients.reduce((sum, item) => sum + item.calories, 0);
+      const protein = log.meal.ingredients.reduce((sum, item) => sum + item.protein, 0);
+      const carbs = log.meal.ingredients.reduce((sum, item) => sum + item.carbs, 0);
+      const fat = log.meal.ingredients.reduce((sum, item) => sum + item.fat, 0);
       await foodTrackingDB.deleteFoodLog(logId);
       await foodTrackingDB.updateDailyTotals(
         today, 
-        -log.calories, 
-        -log.protein, 
-        -log.carbs, 
-        -log.fat
+        -calories,  
+        -protein, 
+        -carbs, 
+        -fat
       );
 
       // Refresh data
