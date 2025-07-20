@@ -14,6 +14,7 @@ const CameraScanner = ({ mode }: CameraScannerProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const [cameraState, setCameraState] = useState<CameraState>('checking');
+  const [idk, setIdk] = useState<string | null>(null);
   const [barcodeAvalible, setBarcodeAvalible] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
@@ -40,26 +41,30 @@ const CameraScanner = ({ mode }: CameraScannerProps) => {
       }
 
       if ('permissions' in navigator) {
-        const permission = await navigator.permissions.query({ name: 'camera' as PermissionName });
-        console.log('Camera permission status:', permission.state);
+        navigator.permissions.query({ name: 'camera' }).then(res => {
+          if (res.state === 'prompt')
+            addNotifications({
+              message: "Requesting camera access...",
+              type: "info"
+            })
+          if (res.state === 'denied') {
+            addNotifications({
+              message: "Camera access denied. Please allow camera permissions in your browser settings.",
+              type: "user-error"
+            })
+          }
+          if (res.state === 'granted') {
+            startCamera();
+          }
 
-        if (permission.state === 'granted') {
-          await startCamera();
-        } else if (permission.state === 'denied') {
-          setCameraState('denied');
-          addNotifications({
-            message: 'Camera access is blocked. Please enable camera permissions in your browser settings.',
-            type: 'user-error',
-            userAction: {
-              label: 'Retry',
-              onClick: retryAccess
-            }
-          });
-        } else {
-          await startCamera();
-        }
+        })
+
       } else {
-        await startCamera();
+        addNotifications({
+          message: 'Permissions API not supported in this browser. Please use a modern browser.',
+          type: 'system-critical'
+        });
+        return;
       }
     } catch (err) {
       console.error('Permission check error:', err);
@@ -79,13 +84,8 @@ const CameraScanner = ({ mode }: CameraScannerProps) => {
         console.log('Camera track stopped:', track.label);
       });
       streamRef.current = null;
+      setCameraState('stopped');
     }
-  };
-
-  const stopCamera = () => {
-    stopStream();
-    setCameraState('stopped');
-    console.log('Camera manually stopped');
   };
 
   const startCamera = async () => {
@@ -97,14 +97,17 @@ const CameraScanner = ({ mode }: CameraScannerProps) => {
         video: {
           width: { ideal: 1280 },
           height: { ideal: 720 },
-          facingMode: 'environment'
+          facingMode: 'environment',
         },
         audio: false
       });
-
       streamRef.current = stream;
 
       if (videoRef.current) {
+        addNotifications({
+          message: 'Camera access granted. Starting video feed...',
+          type: 'info'
+        });
         videoRef.current.srcObject = stream;
         videoRef.current.onloadedmetadata = () => {
           if (videoRef.current) {
@@ -124,8 +127,6 @@ const CameraScanner = ({ mode }: CameraScannerProps) => {
           }
         };
       }
-
-      console.log('Camera started successfully');
     } catch (err) {
       console.error('Camera access error:', err);
 
@@ -172,7 +173,32 @@ const CameraScanner = ({ mode }: CameraScannerProps) => {
       }
     }
   };
+  const toggleTorch = async () => {
 
+    const track = streamRef.current?.getVideoTracks()[0];
+    const capabilities = track?.getCapabilities();
+    if (track) {
+      if(capabilities) {
+        setIdk(`Capabilities: ${JSON.stringify(capabilities)}`);
+        addNotifications({
+          message: `Capabilities: ${JSON.stringify(capabilities)}`,
+          type: 'info'
+        });
+        if ('torch' in capabilities) {
+          addNotifications({
+          message: "Toggling torch mode...",
+          type: 'info'
+        });
+            // Toggle torch by keeping a local state (for demo purposes, always turn on)
+            track.applyConstraints({
+              //@ts-ignore
+              advanced: [{ torch: true }]
+            });
+          }
+      }
+    }
+
+  }
   const takePhoto = async () => {
     setIsLoading(true);
     if (videoRef.current) {
@@ -311,7 +337,7 @@ const CameraScanner = ({ mode }: CameraScannerProps) => {
     // Cleanup on unmount
     return () => {
       console.log('CameraFeed component unmounting, cleaning up...');
-      stopCamera()
+      stopStream();
     };
   }, []);
 
@@ -325,7 +351,7 @@ const CameraScanner = ({ mode }: CameraScannerProps) => {
           muted
           className={`camera-video w-full h-full ${cameraState !== 'active' ? 'invisible' : ''}`}
         />
-
+        <button onClick={toggleTorch}>Click me for torch</button>
         {cameraState === 'active' && (
           <button
             className="camera-shutter-button absolute bottom-4 left-1/2 transform -translate-x-1/2"
@@ -339,6 +365,7 @@ const CameraScanner = ({ mode }: CameraScannerProps) => {
             )}
           </button>
         )}
+        <div>{idk}</div>
       </div>
 
       {cameraState === 'requesting' && (
@@ -354,13 +381,7 @@ const RequestiongCamereaComp = () => {
   const { addNotifications } = useNotification()
   useEffect(() => {
 
-    navigator.permissions.query({ name: 'camera' }).then(res => {
-      if (res.state === 'prompt')
-        addNotifications({
-          message: "Requesting camera access...",
-          type: "info"
-        })
-    })
+
   }, [])
   return (
     <div className="flex flex-col items-center justify-center">
