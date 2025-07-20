@@ -13,8 +13,8 @@ interface CameraScannerProps {
 const CameraScanner = ({ mode }: CameraScannerProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const [idk, setIdk] = useState<string>('');
   const [cameraState, setCameraState] = useState<CameraState>('checking');
-  const [idk, setIdk] = useState<string | null>(null);
   const [barcodeAvalible, setBarcodeAvalible] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
@@ -179,14 +179,10 @@ const CameraScanner = ({ mode }: CameraScannerProps) => {
     const capabilities = track?.getCapabilities();
     if (track) {
       if(capabilities) {
-        setIdk(`Capabilities: ${JSON.stringify(capabilities)}`);
-        addNotifications({
-          message: `Capabilities: ${JSON.stringify(capabilities)}`,
-          type: 'info'
-        });
+        setIdk(`Torch capabilities: ${JSON.stringify(capabilities)}`);
         if ('torch' in capabilities) {
           addNotifications({
-          message: "Toggling torch mode...",
+          message: "AToggling torch mode...",
           type: 'info'
         });
             // Toggle torch by keeping a local state (for demo purposes, always turn on)
