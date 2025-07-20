@@ -42,11 +42,14 @@ const CameraScanner = ({ mode }: CameraScannerProps) => {
 
       if ('permissions' in navigator) {
         navigator.permissions.query({ name: 'camera' }).then(res => {
-          if (res.state === 'prompt')
+          if (res.state === 'prompt') {
+
             addNotifications({
               message: "Requesting camera access...",
               type: "info"
             })
+            startCamera();
+          }
           if (res.state === 'denied') {
             addNotifications({
               message: "Camera access denied. Please allow camera permissions in your browser settings.",
@@ -178,19 +181,19 @@ const CameraScanner = ({ mode }: CameraScannerProps) => {
     const track = streamRef.current?.getVideoTracks()[0];
     const capabilities = track?.getCapabilities();
     if (track) {
-      if(capabilities) {
+      if (capabilities) {
         setIdk(`Torch capabilities: ${JSON.stringify(capabilities)}`);
         if ('torch' in capabilities) {
           addNotifications({
-          message: "AToggling torch mode...",
-          type: 'info'
-        });
-            // Toggle torch by keeping a local state (for demo purposes, always turn on)
-            track.applyConstraints({
-              //@ts-ignore
-              advanced: [{ torch: true }]
-            });
-          }
+            message: "AToggling torch mode...",
+            type: 'info'
+          });
+          // Toggle torch by keeping a local state (for demo purposes, always turn on)
+          track.applyConstraints({
+            //@ts-ignore
+            advanced: [{ torch: true }]
+          });
+        }
       }
     }
 
