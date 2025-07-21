@@ -118,7 +118,12 @@ export const useSearchFood = (query: string, page: number = 0) => {
 export const useScanBarcode = () => {
   const scanBarcode = async (barcode: string) => {
     try {
-      const response = await fetch(`${API_URL}/api/barcode?barcode=${encodeURIComponent(barcode)}`);
+      const response = await fetch(`${API_URL}/api/barcode/search?barcode=${encodeURIComponent(barcode)}`, {
+        method: "GET",
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
 
       if (!response.ok) {
         const json = await response.json();

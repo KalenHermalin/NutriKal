@@ -2,9 +2,9 @@ import { useState, useRef, useEffect } from 'react';
 import { Circle } from 'lucide-react';
 import { useAnalyzePicture, useScanBarcode } from '../hooks/useApi';
 import { useNavigate } from 'react-router-dom';
-import { Food, MealServerResponse } from '../types';
 import LoadingSpinner from './common/LoadingSpinner';
 import { useNotification } from './ErrorSystem';
+import { MealServerResponse } from '../types';
 
 type CameraState = 'checking' | 'requesting' | 'active' | 'denied' | 'error' | 'stopped';
 interface CameraScannerProps {
@@ -220,14 +220,10 @@ const CameraScanner = ({ mode }: CameraScannerProps) => {
             const barcodeDetector = new BarcodeDetector({ formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e'] });
             const barcodes = await barcodeDetector.detect(canvas);
             if (barcodes.length > 0) {
-              console.log("Detected barcodes: ", barcodes);
-              addNotifications({
-                message: `Detected barcode: ${barcodes[0].rawValue} & ${barcodes[0].format}`,
-                type: 'info'
-              });
+
               const barcode = barcodes[0];
               if (barcode.format === 'upc_a') {
-                barcode.rawValue = `00${barcode.rawValue}`;
+                barcode.rawValue = `0${barcode.rawValue}`;
               }
               if (barcode.format === 'ean_8') {
                 barcode.rawValue = `00000${barcode.rawValue}`;
@@ -241,6 +237,7 @@ const CameraScanner = ({ mode }: CameraScannerProps) => {
                 setIsLoading(false);
                 return;
               }
+              
               const newState: MealServerResponse = {
                 ingredients: [data.foods],
                 success: true,
