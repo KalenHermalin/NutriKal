@@ -194,9 +194,96 @@ const CameraScanner = ({ mode }: CameraScannerProps) => {
     }
 
   }
-  const takePhoto = async () => {
-    setIsLoading(true);
+
+  const captureBarcode = async (canvas: HTMLCanvasElement) => {
+
+    try {
+
+      //@ts-ignore
+      const barcodeDetector = new BarcodeDetector({ formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e'] });
+      const barcodes = await barcodeDetector.detect(canvas);
+      if (barcodes.length > 0) {
+
+        const barcode = barcodes[0];
+        if (barcode.format === 'upc_a') {
+          barcode.rawValue = `0${barcode.rawValue}`;
+        }
+        if (barcode.format === 'ean_8') {
+          barcode.rawValue = `00000${barcode.rawValue}`;
+        }
+        const { data, error, isError } = await scanBarcode(barcode.rawValue);
+        if (isError && error) {
+          addNotifications({
+            message: error.message,
+            type: 'user-error',
+          });
+          setIsLoading(false);
+          return;
+        }
+
+        const newState: MealServerResponse = {
+          ingredients: [data.foods],
+          success: true,
+          meal_name: data.foods.food_name || data.foods._brand_name
+        }
+        navigate(`/food`, {
+          state: { mealData: newState }
+        });
+      }
+    } catch (error) {
+      console.error("Error detecting barcodes:", error);
+      addNotifications({
+        message: `Failed to detect barcodes. Please try again. ${(error as Error).message}`,
+        type: 'user-error',
+
+      });
+      setIsLoading(false);
+    }
+
+  }
+
+  const captureMeal = async (base64Image: string) => {
+    try {
+      const { data, error, isError } = await analyzePicture(base64Image);
+      if (isError && error) {
+        addNotifications({
+          message: error.message,
+          type: 'user-error',
+        });
+        setIsLoading(false);
+        return
+      }
+
+      console.log("CamScan: ", data);
+
+      if (data && data.ingredients && data.ingredients.length >= 1) {
+
+        navigate(`/food`, {
+          state: { mealData: data }
+        });
+      } else {
+        console.warn('No ingredients found in the analysis result.');
+        addNotifications({
+          message: 'No food detected. Try taking a clearer picture with better lighting.',
+          type: 'user-error',
+        });
+        setIsLoading(false);
+      }
+    } catch (error) {
+      console.log(error)
+      addNotifications({
+        message: 'Failed to analyze the picture. Please check your internet connection and try again.',
+        type: 'user-error',
+      });
+      setIsLoading(false);
+    }
+  }
+
+
+
+  const captureCamera = async () => {
     if (videoRef.current) {
+      setIsLoading(true);
       const canvas = document.createElement('canvas');
       canvas.width = videoRef.current.videoWidth;
       canvas.height = videoRef.current.videoHeight;
@@ -212,104 +299,28 @@ const CameraScanner = ({ mode }: CameraScannerProps) => {
           setIsLoading(false);
           return;
         }
-        if (mode === 'barcode' && barcodeAvalible) {
-
-          try {
-
-            //@ts-ignore
-            const barcodeDetector = new BarcodeDetector({ formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e'] });
-            const barcodes = await barcodeDetector.detect(canvas);
-            if (barcodes.length > 0) {
-
-              const barcode = barcodes[0];
-              if (barcode.format === 'upc_a') {
-                barcode.rawValue = `0${barcode.rawValue}`;
-              }
-              if (barcode.format === 'ean_8') {
-                barcode.rawValue = `00000${barcode.rawValue}`;
-              }
-              const { data, error, isError } = await scanBarcode(barcode.rawValue);
-              if (isError && error) {
-                addNotifications({
-                  message: error.message,
-                  type: 'user-error',
-                });
-                setIsLoading(false);
-                return;
-              }
-              
-              const newState: MealServerResponse = {
-                ingredients: [data.foods],
-                success: true,
-                meal_name: data.foods.food_name || data.foods._brand_name
-              }
-              navigate(`/food`, {
-                state: { mealData: newState }
-              });
-            }
-          } catch (error) {
-            console.error("Error detecting barcodes:", error);
-            addNotifications({
-              message: `Failed to detect barcodes. Please try again. ${(error as Error).message}`,
-              type: 'user-error',
-
-            });
-            setIsLoading(false);
-          }
-        } else if (mode === 'camera') {
-          try {
-            const { data, error, isError } = await analyzePicture(base64Image);
-            if (isError && error) {
-              addNotifications({
-                message: error.message,
-                type: 'user-error',
-                userAction: {
-                  label: 'Try Again',
-                  onClick: takePhoto
-                }
-              });
-              setIsLoading(false);
-              return
-            }
-
-            console.log("CamScan: ", data);
-
-            if (data && data.ingredients && data.ingredients.length >= 1) {
-
-              navigate(`/food`, {
-                state: { mealData: data }
-              });
-            } else {
-              console.warn('No ingredients found in the analysis result.');
-              addNotifications({
-                message: 'No food detected. Try taking a clearer picture with better lighting.',
-                type: 'user-error',
-                userAction: {
-                  label: 'Try Again',
-                  onClick: takePhoto
-                }
-              });
-              setIsLoading(false);
-            }
-          } catch (error) {
-            console.log(error)
-            addNotifications({
-              message: 'Failed to analyze the picture. Please check your internet connection and try again.',
-              type: 'user-error',
-            });
-            setIsLoading(false);
-          }
-        } else {
+        if (mode === 'barcode' && !barcodeAvalible) {
           addNotifications({
-            message: 'Failed to process the image. Please try again.',
-            type: 'system-critical'
+            message: 'Barcode detection is not available in this browser.',
+            type: 'user-error',
           });
           setIsLoading(false);
-
+          return;
+        }
+        if (mode === 'barcode') {
+          await captureBarcode(canvas);
+        }
+        if (mode === 'camera') {
+          await captureMeal(base64Image);
         }
       }
+    } else {
+      addNotifications({
+        message: 'Video element not found. Please ensure the camera is active.',
+        type: 'user-error',
+      });
     }
-  };
+  }
 
   useEffect(() => {
     if ('BarcodeDetector' in globalThis) {
@@ -347,7 +358,7 @@ const CameraScanner = ({ mode }: CameraScannerProps) => {
         {cameraState === 'active' && (
           <button
             className="camera-shutter-button absolute bottom-4 left-1/2 transform -translate-x-1/2"
-            onClick={takePhoto}
+            onClick={captureCamera}
             disabled={isLoading}
           >
             {isLoading ? (
@@ -360,25 +371,13 @@ const CameraScanner = ({ mode }: CameraScannerProps) => {
       </div>
 
       {cameraState === 'requesting' && (
-        <RequestiongCamereaComp />
+        <div className="flex flex-col items-center justify-center">
+          <LoadingSpinner size={128} color='#333' />
+          <p className="mt-4 text-center text-gray-700">Requesting camera access...</p>
+        </div>
+
       )}
       {cameraState === 'denied' && <div className="overlay">No access to camera. Please allow in settings.</div>}
     </div>
   );
 };
-
-
-const RequestiongCamereaComp = () => {
-  const { addNotifications } = useNotification()
-  useEffect(() => {
-
-
-  }, [])
-  return (
-    <div className="flex flex-col items-center justify-center">
-      <LoadingSpinner size={128} color='#333' />
-      <p className="mt-4 text-center text-gray-700">Requesting camera access...</p>
-    </div>
-  )
-}
-export default CameraScanner;
