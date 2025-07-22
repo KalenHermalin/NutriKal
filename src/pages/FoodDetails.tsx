@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Plus, ArrowLeft, Info, List, Minus } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -6,7 +6,7 @@ import { useFoodTracking } from '../hooks/useFoodTracking';
 import NutritionCard from '../components/common/NutritionCard';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import { MealServerResponse, Food, Serving } from '../types';
-import { FoodLog } from '../utils/indexedDB';
+import { FoodLog, MealLog } from '../utils/indexedDB';
 
 interface FoodDetailsProps {
   mealData?: MealServerResponse;
@@ -22,7 +22,15 @@ const FoodDetails: React.FC<FoodDetailsProps> = () => {
   // State for managing food quantities and serving selections
   const [foods, setFoods] = useState<Food[]>([]);
   const [quantities, setQuantities] = useState<{ [key: string]: number }>({});
-
+  const macrosRef = useRef<{
+    protein: string;
+    carbs: string;
+    fat: string;
+    calories: string;
+    proteinPct: number;
+    carbsPct: number;
+    fatPct: number;
+  }>();
   const { addFoodToLog } = useFoodTracking();
 
   // Initialize foods with quantities and serving selections
@@ -124,7 +132,7 @@ const FoodDetails: React.FC<FoodDetailsProps> = () => {
     };
   };
 
-  const macros = calculateMacros();
+  macrosRef.current = calculateMacros();
 
   // Function to update quantity for a specific food item
   const updateQuantity = (foodKey: string, newQuantity: number) => {
@@ -133,6 +141,8 @@ const FoodDetails: React.FC<FoodDetailsProps> = () => {
         ...prev,
         [foodKey]: newQuantity
       }));
+      // Recalculate macros after changing quantity
+      macrosRef.current = calculateMacros();
     }
   };
 
@@ -143,6 +153,8 @@ const FoodDetails: React.FC<FoodDetailsProps> = () => {
         ? { ...food, selectedServing: servingIndex }
         : food
     ));
+    // Recalculate macros after changing serving
+    macrosRef.current = calculateMacros();
   };
 
   return (
@@ -184,7 +196,7 @@ const FoodDetails: React.FC<FoodDetailsProps> = () => {
             )}
           </div>
           <div className="text-right">
-            <p className="font-semibold">{macros.calories} cal</p>
+            <p className="font-semibold">{macrosRef.current.calories} cal</p>
             <p className="text-xs text-muted">Total</p>
           </div>
         </div>
@@ -194,21 +206,21 @@ const FoodDetails: React.FC<FoodDetailsProps> = () => {
           <div className="flex gap-1 h-2 w-full rounded-full overflow-hidden">
             <div
               className="bg-purple-400"
-              style={{ width: `${macros.proteinPct}%` }}
+              style={{ width: `${macrosRef.current.proteinPct}%` }}
             />
             <div
               className="bg-blue-400"
-              style={{ width: `${macros.carbsPct}%` }}
+              style={{ width: `${macrosRef.current.carbsPct}%` }}
             />
             <div
               className="bg-yellow-400"
-              style={{ width: `${macros.fatPct}%` }}
+              style={{ width: `${macrosRef.current  .fatPct}%` }}
             />
           </div>
           <div className="flex justify-between text-xs mt-1 text-muted">
-            <span>{macros.proteinPct}% protein</span>
-            <span>{macros.carbsPct}% carbs</span>
-            <span>{macros.fatPct}% fat</span>
+            <span>{macrosRef.current.proteinPct}% protein</span>
+            <span>{macrosRef.current.carbsPct}% carbs</span>
+            <span>{macrosRef.current.fatPct}% fat</span>
           </div>
         </div>
 
@@ -216,15 +228,15 @@ const FoodDetails: React.FC<FoodDetailsProps> = () => {
         <div className="grid grid-cols-3 gap-4 mb-6">
           <div className="text-center p-3 bg-purple-100 dark:bg-purple-900/20 rounded-lg">
             <p className="text-xs text-muted mb-1">Protein</p>
-            <p className="font-semibold">{macros.protein}g</p>
+            <p className="font-semibold">{macrosRef.current.protein}g</p>
           </div>
           <div className="text-center p-3 bg-blue-100 dark:bg-blue-900/20 rounded-lg">
             <p className="text-xs text-muted mb-1">Carbs</p>
-            <p className="font-semibold">{macros.carbs}g</p>
+            <p className="font-semibold">{macrosRef.current.carbs}g</p>
           </div>
           <div className="text-center p-3 bg-yellow-100 dark:bg-yellow-900/20 rounded-lg">
             <p className="text-xs text-muted mb-1">Fat</p>
-            <p className="font-semibold">{macros.fat}g</p>
+            <p className="font-semibold">{macrosRef.current.fat}g</p>
           </div>
         </div>
 
@@ -239,16 +251,29 @@ const FoodDetails: React.FC<FoodDetailsProps> = () => {
                 foodName: food.food_name,
                 brandName: food.brand_name,
                 servingSize: food.servings[food.selectedServing || 0].serving_description,
-                calories: parseFloat(macros.calories),
-                protein: parseFloat(macros.protein),
-                carbs: parseFloat(macros.carbs),
-                fat: parseFloat(macros.fat),
+                calories: parseFloat(food.servings[food.selectedServing || 0].calories) || 0 ,
+                protein: parseFloat(food.servings[food.selectedServing || 0].protein) || 0,
+                carbs: parseFloat(food.servings[food.selectedServing || 0].carbohydrate) || 0,
+                fat: parseFloat(food.servings[food.selectedServing || 0].fat) || 0,
                 timestamp: Date.now()
               };
             });
+            
+            const mealLog: MealLog = {
+              id: `log_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+              date: new Date().toISOString().split('T')[0],
+              meal: {
+                meal_name: mealData.meal_name,
+                ingredients: foodLogs
+              },
+              timestamp: Date.now(),
+              calories: parseFloat(macrosRef.current?.calories || "0"),
+              protein: parseFloat(macrosRef.current?.protein || "0"),
+              carbs: parseFloat(macrosRef.current?.carbs || "0"),
+              fat: parseFloat(macrosRef.current?.fat || "0")
+            };
             addFoodToLog(
-              isMeal ? mealData.meal_name : foods[0]?.food_name,
-              foodLogs
+              mealLog
             );
           }}>
             <Plus size={16} className="mr-2" />

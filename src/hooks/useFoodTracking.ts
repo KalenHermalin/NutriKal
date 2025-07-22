@@ -42,12 +42,12 @@ export const useFoodTracking = () => {
   const checkDailyReset = async (settings: UserSettings) => {
     try {
       let tracking = await foodTrackingDB.getDailyTracking(today);
-      
+
       if (!tracking) {
         // Create new day tracking
         tracking = await foodTrackingDB.createNewDayTracking(today, settings);
       }
-      
+
       setDailyTracking(tracking);
     } catch (err) {
       console.error('Daily reset check error:', err);
@@ -55,31 +55,16 @@ export const useFoodTracking = () => {
   };
 
   const addFoodToLog = async (
-
-    meal_name: string,
-    ingredients: FoodLog[],
-    ) => {
+    mealLog: MealLog
+  ) => {
     try {
-      const newLog: MealLog = {
-        id: `log_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        date: today,
-        meal: {
-          meal_name,
-          ingredients
-        } ,
-        timestamp: Date.now(),
-      };
-      const calories = ingredients.reduce((sum, item) => sum + item.calories, 0);
-      const protein = ingredients.reduce((sum, item) => sum + item.protein, 0);
-      const carbs = ingredients.reduce((sum, item) => sum + item.carbs, 0);
-      const fat = ingredients.reduce((sum, item) => sum + item.fat, 0);
-      await foodTrackingDB.addFoodLog(newLog);
-      await foodTrackingDB.updateDailyTotals(today, calories, protein, carbs, fat);
+      await foodTrackingDB.addFoodLog(mealLog);
+      await foodTrackingDB.updateDailyTotals(today, mealLog.calories, mealLog.protein, mealLog.carbs, mealLog.fat);
 
       // Refresh data
       const updatedLogs = await foodTrackingDB.getFoodLogs(today);
       const updatedTracking = await foodTrackingDB.getDailyTracking(today);
-      
+
       setFoodLogs(updatedLogs);
       setDailyTracking(updatedTracking);
 
@@ -95,23 +80,19 @@ export const useFoodTracking = () => {
     try {
       const log = foodLogs.find(l => l.id === logId);
       if (!log) return false;
-      const calories = log.meal.ingredients.reduce((sum, item) => sum + item.calories, 0);
-      const protein = log.meal.ingredients.reduce((sum, item) => sum + item.protein, 0);
-      const carbs = log.meal.ingredients.reduce((sum, item) => sum + item.carbs, 0);
-      const fat = log.meal.ingredients.reduce((sum, item) => sum + item.fat, 0);
       await foodTrackingDB.deleteFoodLog(logId);
       await foodTrackingDB.updateDailyTotals(
-        today, 
-        -calories,  
-        -protein, 
-        -carbs, 
-        -fat
+        today,
+        -log.calories,
+        -log.protein,
+        -log.carbs,
+        -log.fat
       );
 
       // Refresh data
       const updatedLogs = await foodTrackingDB.getFoodLogs(today);
       const updatedTracking = await foodTrackingDB.getDailyTracking(today);
-      
+
       setFoodLogs(updatedLogs);
       setDailyTracking(updatedTracking);
 
@@ -133,9 +114,9 @@ export const useFoodTracking = () => {
 
       // Update daily tracking targets if goals changed
       if (dailyTracking && (
-        newSettings.calorieGoal || 
-        newSettings.proteinGoal || 
-        newSettings.carbsGoal || 
+        newSettings.calorieGoal ||
+        newSettings.proteinGoal ||
+        newSettings.carbsGoal ||
         newSettings.fatGoal
       )) {
         const updatedTracking = {
@@ -145,7 +126,7 @@ export const useFoodTracking = () => {
           carbsTarget: newSettings.carbsGoal || dailyTracking.carbsTarget,
           fatTarget: newSettings.fatGoal || dailyTracking.fatTarget,
         };
-        
+
         await foodTrackingDB.saveDailyTracking(updatedTracking);
         setDailyTracking(updatedTracking);
       }

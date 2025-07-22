@@ -203,7 +203,10 @@ const CameraScanner = ({ mode }: CameraScannerProps) => {
       const barcodeDetector = new BarcodeDetector({ formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e'] });
       const barcodes = await barcodeDetector.detect(canvas);
       if (barcodes.length > 0) {
-
+        addNotifications({
+          message: `Detected ${barcodes.length} barcode(s). Processing...`,
+          type: 'info'
+        });
         const barcode = barcodes[0];
         if (barcode.format === 'upc_a') {
           barcode.rawValue = `0${barcode.rawValue}`;
@@ -229,6 +232,13 @@ const CameraScanner = ({ mode }: CameraScannerProps) => {
         navigate(`/food`, {
           state: { mealData: newState }
         });
+      }
+      else {
+        addNotifications({
+          message: 'No barcodes detected. Please try again with a clearer image.',
+          type: 'user-error',
+        });
+        setIsLoading(false);
       }
     } catch (error) {
       console.error("Error detecting barcodes:", error);
@@ -299,7 +309,7 @@ const CameraScanner = ({ mode }: CameraScannerProps) => {
           setIsLoading(false);
           return;
         }
-        if (mode === 'barcode' && !barcodeAvalible) {
+        else if (mode === 'barcode' && !barcodeAvalible) {
           addNotifications({
             message: 'Barcode detection is not available in this browser.',
             type: 'user-error',
@@ -307,10 +317,10 @@ const CameraScanner = ({ mode }: CameraScannerProps) => {
           setIsLoading(false);
           return;
         }
-        if (mode === 'barcode') {
+        else if (mode === 'barcode') {
           await captureBarcode(canvas);
         }
-        if (mode === 'camera') {
+        else if (mode === 'camera') {
           await captureMeal(base64Image);
         }
       }
@@ -324,16 +334,8 @@ const CameraScanner = ({ mode }: CameraScannerProps) => {
 
   useEffect(() => {
     if ('BarcodeDetector' in globalThis) {
-      addNotifications({
-        message: "Barcode Detector is available",
-        type: 'info'
-      })
       setBarcodeAvalible(true);
     } else {
-      addNotifications({
-        message: "Barcode detector API is not available, some browsers need to enable this feature",
-        type: 'info'
-      })
       setBarcodeAvalible(false);
     }
     checkPermissions();
@@ -381,3 +383,5 @@ const CameraScanner = ({ mode }: CameraScannerProps) => {
     </div>
   );
 };
+
+export default CameraScanner;

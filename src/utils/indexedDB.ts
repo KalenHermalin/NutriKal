@@ -32,6 +32,10 @@ export interface MealLog {
   };
   id: string;
   date: string;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
 }
 export interface FoodLog {
   id: string;
