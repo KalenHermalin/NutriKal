@@ -84,9 +84,6 @@ const Dashboard = () => {
   return (
 
     <div className="space-y-6">
-     <button onClick={() => {
-      navigator.serviceWorker.controller?.postMessage('skipWaiting');
-}}>Click Me</button>
       {/* Daily Calories */}
       <motion.div
         className="card"

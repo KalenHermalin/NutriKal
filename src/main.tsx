@@ -7,16 +7,15 @@ import { ErrorProvider, useNotification } from './components/ErrorSystem';
 
 const ServiceWorkerInitializer = () => {
   const { addNotifications } = useNotification();
-  
+
   React.useEffect(() => {
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.onmessage = (event) => {
-        if (event.data === 'skippedWaiting') {
+        if (event.data === 'activated')
           addNotifications({
-            message: "skipped waiting! Updated!",
+            message: "Service Worker activated",
             type: "info",
-          });
-      }
+          })
       };
 
       navigator.serviceWorker.register('/sw.js', { scope: '/' }).then(reg => {
@@ -26,8 +25,14 @@ const ServiceWorkerInitializer = () => {
             newWorker.addEventListener('statechange', () => {
               if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
                 addNotifications({
-                  message: "New Service Worker Installed, refreshing to use",
-                  type: "info"
+                  message: "New content is available, click to refresh",
+                  type: "info",
+                  userAction: {
+                    label: "Refresh",
+                    onClick() {
+                      window.location.reload();
+                    },
+                  }
                 })
                 newWorker.postMessage('skipWaiting');
 
@@ -71,7 +76,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
   <ErrorProvider>
     <ServiceWorkerInitializer />
     <App />
-   
+
   </ErrorProvider>
 );
 
