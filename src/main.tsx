@@ -54,23 +54,14 @@ const ServiceWorkerInitializer = () => {
         type: 'info'
       })
     }
-
-    navigator.serviceWorker.addEventListener('message', (event) => {
-      if (event.data === 'Skiped_waiting')
+    navigator.serviceWorker.onmessage = (event) => {
+      if (event.data === 'Skiped_waiting') {
         addNotifications({
-          message: "We skipped waiting",
-          type: "info"
+          message: "skipped waiting",
+          type: "info",
         });
-    })
-return () => {
-      navigator.serviceWorker.removeEventListener('message', (event) => {
-        if (event.data === 'Skiped_waiting')
-          addNotifications({
-            message: "We skipped waiting",
-            type: "info"
-          });
-      })
-}
+    }
+    };
   }, []);
 
   return null;
@@ -79,6 +70,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
   <ErrorProvider>
     <ServiceWorkerInitializer />
     <App />
+   
   </ErrorProvider>
 );
 
