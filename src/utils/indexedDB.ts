@@ -1,3 +1,5 @@
+
+
 // IndexedDB utility for food tracking data
 export interface DailyTracking {
   id: string;
@@ -22,6 +24,19 @@ export interface UserSettings {
   fatGoal: number;
 }
 
+export interface MealLog {
+  timestamp: number;
+  meal: {
+    meal_name: string;
+    ingredients: FoodLog[];
+  };
+  id: string;
+  date: string;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+}
 export interface FoodLog {
   id: string;
   date: string;
@@ -85,7 +100,7 @@ class FoodTrackingDB {
   async getDailyTracking(date: string): Promise<DailyTracking | null> {
     const store = this.getStore('dailyTracking');
     const request = store.index('date').get(date);
-    
+
     return new Promise((resolve, reject) => {
       request.onsuccess = () => resolve(request.result || null);
       request.onerror = () => reject(request.error);
@@ -95,7 +110,7 @@ class FoodTrackingDB {
   async saveDailyTracking(data: DailyTracking): Promise<void> {
     const store = this.getStore('dailyTracking', 'readwrite');
     const request = store.put(data);
-    
+
     return new Promise((resolve, reject) => {
       request.onsuccess = () => resolve();
       request.onerror = () => reject(request.error);
@@ -124,7 +139,7 @@ class FoodTrackingDB {
   async getUserSettings(): Promise<UserSettings> {
     const store = this.getStore('userSettings');
     const request = store.get('main');
-    
+
     return new Promise((resolve, reject) => {
       request.onsuccess = () => {
         const result = request.result;
@@ -151,7 +166,7 @@ class FoodTrackingDB {
   async saveUserSettings(settings: UserSettings): Promise<void> {
     const store = this.getStore('userSettings', 'readwrite');
     const request = store.put(settings);
-    
+
     return new Promise((resolve, reject) => {
       request.onsuccess = () => resolve();
       request.onerror = () => reject(request.error);
@@ -159,20 +174,20 @@ class FoodTrackingDB {
   }
 
   // Food Logs Methods
-  async getFoodLogs(date: string): Promise<FoodLog[]> {
+  async getFoodLogs(date: string): Promise<MealLog[]> {
     const store = this.getStore('foodLogs');
     const request = store.index('date').getAll(date);
-    
+
     return new Promise((resolve, reject) => {
       request.onsuccess = () => resolve(request.result || []);
       request.onerror = () => reject(request.error);
     });
   }
 
-  async addFoodLog(log: FoodLog): Promise<void> {
+  async addFoodLog(log: MealLog): Promise<void> {
     const store = this.getStore('foodLogs', 'readwrite');
     const request = store.add(log);
-    
+
     return new Promise((resolve, reject) => {
       request.onsuccess = () => resolve();
       request.onerror = () => reject(request.error);
@@ -182,7 +197,7 @@ class FoodTrackingDB {
   async deleteFoodLog(id: string): Promise<void> {
     const store = this.getStore('foodLogs', 'readwrite');
     const request = store.delete(id);
-    
+
     return new Promise((resolve, reject) => {
       request.onsuccess = () => resolve();
       request.onerror = () => reject(request.error);

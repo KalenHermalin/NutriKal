@@ -11,3 +11,10 @@ self.addEventListener('install', event => {
 self.addEventListener('activate', event => {
   console.log("ACTIVATED")
 })
+
+self.addEventListener('message', event => { 
+  if (event.data === 'skipWaiting') {
+    self.skipWaiting();
+    self.postMessage('Skiped_waiting')
+  }
+})

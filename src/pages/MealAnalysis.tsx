@@ -42,34 +42,17 @@ const MealAnalysis = () => {
           </div>
         </div>
 
-        <AnimatePresence mode="wait">
-          {mode === 'camera' ? (
-            <motion.div
-              key="camera"
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 20 }}
-              transition={{ duration: 0.3 }}
-            >
-              <CameraScanner />
-            </motion.div>
-          ) : (
-            <motion.div
-              key="barcode"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              transition={{ duration: 0.3 }}
-            >
-              <div className="flex items-center gap-3 mb-4">
-                <Barcode className="text-primary" />
-                <h3 className="font-medium">Barcode Scanner</h3>
-              </div>
 
-              <CameraScanner />
-            </motion.div>
-          )}
-        </AnimatePresence>
+
+        <motion.div
+          key="camera"
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: 20 }}
+          transition={{ duration: 0.3 }}
+        >
+          <CameraScanner mode={mode.toString()} />
+        </motion.div>
       </motion.div>
     </div>
   );

@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Plus, ArrowLeft } from 'lucide-react';
+import { Plus, ArrowLeft, Minus } from 'lucide-react';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import { motion } from 'framer-motion';
 import { Food } from '../types';
@@ -13,6 +13,22 @@ const MealDetails: React.FC<MealDetailsProps> = ({ meal: propMeal }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const meal = propMeal || (location.state?.meal as Food[]);
+
+  // State to track quantities for each food item
+  const [quantities, setQuantities] = useState<{ [key: string]: number }>({});
+
+  // Initialize quantities from the API data when meal loads
+  useEffect(() => {
+    if (meal) {
+      const initialQuantities: { [key: string]: number } = {};
+      meal.forEach((food, index) => {
+        const key = `${food.food_id || index}`;
+        // Use the quantity from the API or default to 1
+        initialQuantities[key] = parseFloat(food.quantity || '1');
+      });
+      setQuantities(initialQuantities);
+    }
+  }, [meal]);
 
   // If meal is not available, redirect to analyze page
   React.useEffect(() => {
@@ -37,7 +53,10 @@ const MealDetails: React.FC<MealDetailsProps> = ({ meal: propMeal }) => {
     let totalCarbs = 0;
     let totalFat = 0;
 
-    meal.forEach(food => {
+    meal.forEach((food, index) => {
+      const key = `${food.food_id || index}`;
+      const quantity = quantities[key] || 1;
+
       // Make sure servings is an array
       const servings = Array.isArray(food.servings)
         ? food.servings
@@ -49,10 +68,10 @@ const MealDetails: React.FC<MealDetailsProps> = ({ meal: propMeal }) => {
 
       if (servings && servings.length > 0) {
         const serving = servings[0];
-        totalCalories += parseFloat(serving.calories) || 0;
-        totalProtein += parseFloat(serving.protein) || 0;
-        totalCarbs += parseFloat(serving.carbohydrate) || 0;
-        totalFat += parseFloat(serving.fat) || 0;
+        totalCalories += (parseFloat(serving.calories) || 0) * quantity;
+        totalProtein += (parseFloat(serving.protein) || 0) * quantity;
+        totalCarbs += (parseFloat(serving.carbohydrate) || 0) * quantity;
+        totalFat += (parseFloat(serving.fat) || 0) * quantity;
       }
     });
 
@@ -74,6 +93,16 @@ const MealDetails: React.FC<MealDetailsProps> = ({ meal: propMeal }) => {
   };
 
   const totalNutrition = calculateTotalNutrition();
+
+  // Function to update quantity for a specific food item
+  const updateQuantity = (foodKey: string, newQuantity: number) => {
+    if (newQuantity > 0) {
+      setQuantities(prev => ({
+        ...prev,
+        [foodKey]: newQuantity
+      }));
+    }
+  };
 
   return (
     <div className="space-y-6 pb-20">
@@ -148,6 +177,9 @@ const MealDetails: React.FC<MealDetailsProps> = ({ meal: propMeal }) => {
       <h2 className="text-lg font-semibold mt-8 mb-4">Food Items</h2>
       <div className="space-y-4">
         {meal.map((food, index) => {
+          const foodKey = `${food.food_id || index}`;
+          const quantity = quantities[foodKey] || 1;
+
           // Make sure servings is an array
           const servings = Array.isArray(food.servings)
             ? food.servings
@@ -178,10 +210,11 @@ const MealDetails: React.FC<MealDetailsProps> = ({ meal: propMeal }) => {
 
           const serving = servings[0];
 
-          // Calculate macro percentages
-          const protein = parseFloat(serving.protein) || 0;
-          const carbs = parseFloat(serving.carbohydrate) || 0;
-          const fat = parseFloat(serving.fat) || 0;
+          // Calculate macro percentages and values with quantity
+          const protein = (parseFloat(serving.protein) || 0) * quantity;
+          const carbs = (parseFloat(serving.carbohydrate) || 0) * quantity;
+          const fat = (parseFloat(serving.fat) || 0) * quantity;
+          const calories = (parseFloat(serving.calories) || 0) * quantity;
           const total = protein + carbs + fat;
 
           const proteinPct = total > 0 ? Math.round((protein / total) * 100) : 33;
@@ -204,10 +237,42 @@ const MealDetails: React.FC<MealDetailsProps> = ({ meal: propMeal }) => {
                   )}
                 </div>
                 <div className="text-right">
-                  <p className="font-semibold">{serving.calories || '0'} cal</p>
+                  <p className="font-semibold">{Math.round(calories)} cal</p>
                   <p className="text-xs text-muted">
                     {serving.serving_description || serving.measurement_description || 'Per serving'}
                   </p>
+                </div>
+              </div>
+
+              {/* Quantity Controls */}
+              <div className="flex items-center justify-between mt-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                <div>
+                  <span className="text-sm font-medium">Quantity:</span>
+                  {food.quantity && (
+                    <p className="text-xs text-muted">Original: {food.quantity}</p>
+                  )}
+                </div>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => updateQuantity(foodKey, Math.max(0.1, quantity - 0.1))}
+                    className="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center hover:bg-gray-300 dark:hover:bg-gray-600"
+                  >
+                    <Minus size={14} />
+                  </button>
+                  <input
+                    type="number"
+                    value={quantity}
+                    onChange={(e) => updateQuantity(foodKey, Math.max(0.1, parseFloat(e.target.value) || 0.1))}
+                    className="w-16 text-center bg-transparent border border-gray-300 dark:border-gray-600 rounded px-2 py-1 text-sm"
+                    min="0.1"
+                    step="0.1"
+                  />
+                  <button
+                    onClick={() => updateQuantity(foodKey, quantity + 0.1)}
+                    className="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center hover:bg-gray-300 dark:hover:bg-gray-600"
+                  >
+                    <Plus size={14} />
+                  </button>
                 </div>
               </div>
 
@@ -219,9 +284,9 @@ const MealDetails: React.FC<MealDetailsProps> = ({ meal: propMeal }) => {
                   <div className="bg-yellow-400 rounded-r-full" style={{ width: `${fatPct}%` }} />
                 </div>
                 <div className="flex justify-between text-xs mt-1 text-muted">
-                  <span>{proteinPct}% protein</span>
-                  <span>{carbsPct}% carbs</span>
-                  <span>{fatPct}% fat</span>
+                  <span>{proteinPct}% protein ({protein.toFixed(1)}g)</span>
+                  <span>{carbsPct}% carbs ({carbs.toFixed(1)}g)</span>
+                  <span>{fatPct}% fat ({fat.toFixed(1)}g)</span>
                 </div>
               </div>
 

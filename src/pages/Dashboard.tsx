@@ -194,44 +194,92 @@ const Dashboard = () => {
           <div className="space-y-3">
             {foodLogs
               .sort((a, b) => b.timestamp - a.timestamp)
-              .map((log) => (
-                <motion.div
-                  key={log.id}
-                  className="flex items-center justify-between p-3 rounded-xl bg-background hover:bg-muted/10 group"
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ type: 'spring', stiffness: 400, damping: 10 }}
-                >
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <h3 className="font-medium">{log.foodName}</h3>
-                      <Clock size={12} className="text-muted" />
-                      <span className="text-xs text-muted">{formatTime(log.timestamp)}</span>
+              .map((log) => {
+                if (log.meal.ingredients.length === 1) return (
+                  <motion.div
+                    key={log.id}
+                    className="flex items-center justify-between p-3 rounded-xl bg-background hover:bg-muted/10 group"
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ type: 'spring', stiffness: 400, damping: 10 }}
+                  >
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 className="font-medium">{log.meal.meal_name}</h3>
+                        <Clock size={12} className="text-muted" />
+                        <span className="text-xs text-muted">{formatTime(log.timestamp)}</span>
+                      </div>
+                      {log.meal.ingredients[0].brandName && (
+                        <p className="text-sm text-muted">{log.meal.ingredients[0].brandName}</p>
+                      )}
+                      <p className="text-xs text-muted">{log.meal.ingredients[0].servingSize}</p>
+                      <div className="flex gap-4 text-xs mt-1">
+                        <span className="text-purple-400">P: {log.meal.ingredients[0].protein}g</span>
+                        <span className="text-blue-400">C: {log.meal.ingredients[0].carbs}g</span>
+                        <span className="text-yellow-400">F: {log.meal.ingredients[0].fat}g</span>
+                      </div>
                     </div>
-                    {log.brandName && (
-                      <p className="text-sm text-muted">{log.brandName}</p>
-                    )}
-                    <p className="text-xs text-muted">{log.servingSize}</p>
-                    <div className="flex gap-4 text-xs mt-1">
-                      <span className="text-purple-400">P: {log.protein}g</span>
-                      <span className="text-blue-400">C: {log.carbs}g</span>
-                      <span className="text-yellow-400">F: {log.fat}g</span>
+                    <div className="flex items-center gap-3">
+                      <div className="text-right">
+                        <p className="font-semibold">{log.meal.ingredients[0].calories} cal</p>
+                      </div>
+                      <button
+                        onClick={() => removeFoodFromLog(log.id)}
+                        className="opacity-0 group-hover:opacity-100 text-error hover:bg-error/10 p-1 rounded transition-all"
+                        aria-label="Remove food"
+                      >
+                        <Trash2 size={16} />
+                      </button>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className="text-right">
-                      <p className="font-semibold">{log.calories} cal</p>
-                    </div>
-                    <button
-                      onClick={() => removeFoodFromLog(log.id)}
-                      className="opacity-0 group-hover:opacity-100 text-error hover:bg-error/10 p-1 rounded transition-all"
-                      aria-label="Remove food"
+                  </motion.div>
+                )
+                else if (log.meal.ingredients.length > 1) {
+                  const carbs = log.meal.ingredients.reduce((sum, item) => sum + item.carbs, 0);
+                  const protein = log.meal.ingredients.reduce((sum, item) => sum + item.protein, 0);
+                  const fat = log.meal.ingredients.reduce((sum, item) => sum + item.fat, 0);
+                  const totalCalories = log.meal.ingredients.reduce((sum, item) => sum + item.calories, 0);
+                  const servingSize = log.meal.ingredients.map(item => item.servingSize).join(', ');
+
+                  return (
+                    <motion.div
+                      key={log.id}
+                      className="flex items-center justify-between p-3 rounded-xl bg-background hover:bg-muted/10 group"
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ type: 'spring', stiffness: 400, damping: 10 }}
                     >
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
-                </motion.div>
-              ))}
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h3 className="font-medium">{log.meal.meal_name}</h3>
+                          <Clock size={12} className="text-muted" />
+                          <span className="text-xs text-muted">{formatTime(log.timestamp)}</span>
+                        </div>
+                        <p className="text-xs text-muted">{servingSize}</p>
+                        <div className="flex gap-4 text-xs mt-1">
+                          <span className="text-purple-400">P: {protein}g</span>
+                          <span className="text-blue-400">C: {carbs}g</span>
+                          <span className="text-yellow-400">F: {fat}g</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="text-right">
+                          <p className="font-semibold">{totalCalories} cal</p>
+                        </div>
+                        <button
+                          onClick={() => removeFoodFromLog(log.id)}
+                          className="opacity-0 group-hover:opacity-100 text-error hover:bg-error/10 p-1 rounded transition-all"
+                          aria-label="Remove food"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </motion.div>
+                  )
+                }
+
+              }
+
+              )}
           </div>
         )}
       </motion.div>

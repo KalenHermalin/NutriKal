@@ -1,26 +1,36 @@
 import React from 'react';
-import { motion } from 'framer-motion';
 import { Serving } from '../../types';
 
 interface NutritionCardProps {
-  serving: Serving | any; // Allow any to handle unexpected API responses
+  serving: Serving;
+  quantity?: number;
 }
 
-const NutritionCard: React.FC<NutritionCardProps> = ({ serving }) => {
+const NutritionCard: React.FC<NutritionCardProps> = ({ serving, quantity = 1 }) => {
   // Handle case where serving might be undefined or malformed
   if (!serving) {
     return (
-      <div className="card">
-        <h3 className="text-lg font-semibold mb-4">Nutrition Facts</h3>
+      <div className="bg-white rounded-lg shadow-md p-6">
+        <h3 className="text-lg font-semibold mb-4 text-gray-800">Nutrition Facts</h3>
         <p className="text-red-500">No nutrition information available</p>
       </div>
     );
   }
 
+  // Helper function to get value and multiply by quantity
+  const getValue = (value: string | undefined): number => {
+    return parseFloat(value || '0') * quantity;
+  };
+
+  // Helper function to format values
+  const formatValue = (value: number, unit: string = ''): string => {
+    return value % 1 === 0 ? `${value}${unit}` : `${value.toFixed(1)}${unit}`;
+  };
+
   // Calculate percentages based on recommended daily values
   const calculatePercentage = (value: string | undefined, dailyValue: number) => {
     if (!value) return 0;
-    const numValue = parseFloat(value);
+    const numValue = getValue(value);
     if (isNaN(numValue) || dailyValue === 0) return 0;
     return Math.round((numValue / dailyValue) * 100);
   };
@@ -32,7 +42,7 @@ const NutritionCard: React.FC<NutritionCardProps> = ({ serving }) => {
       value: serving?.calories || '0',
       dailyValue: 2000,
       unit: 'kcal',
-      color: 'bg-primary'
+      color: 'bg-blue-600'
     },
     {
       name: 'Carbs',
@@ -58,31 +68,30 @@ const NutritionCard: React.FC<NutritionCardProps> = ({ serving }) => {
   ];
 
   return (
-    <div className="card">
-      <h3 className="text-lg font-semibold mb-4">Nutrition Facts</h3>
-      <p className="text-sm text-muted mb-4">
+    <div className="bg-white rounded-lg shadow-md p-6">
+      <h3 className="text-lg font-semibold mb-4 text-gray-800">Nutrition Facts</h3>
+      <p className="text-sm text-gray-600 mb-4">
         Serving: {serving?.serving_description || serving?.measurement_description || 'Standard serving'}
+        {quantity !== 1 && ` × ${quantity}`}
       </p>
 
       <div className="space-y-4">
         {macros.map((macro) => {
-          const value = parseFloat(macro.value);
+          const value = getValue(macro.value);
           const percentage = calculatePercentage(macro.value, macro.dailyValue);
 
           return (
             <div key={macro.name} className="space-y-1">
               <div className="flex justify-between text-sm">
-                <span>{macro.name}</span>
-                <span>
-                  {!isNaN(value) ? value.toFixed(1) : '0'} {macro.unit} ({percentage}%)
+                <span className="text-gray-700">{macro.name}</span>
+                <span className="text-gray-800">
+                  {!isNaN(value) ? formatValue(value) : '0'} {macro.unit} ({percentage}%)
                 </span>
               </div>
-              <div className="w-full bg-muted/30 rounded-full h-2 overflow-hidden">
-                <motion.div
-                  className={`h-full rounded-full ${macro.color}`}
-                  initial={{ width: 0 }}
-                  animate={{ width: `${Math.min(percentage, 100)}%` }}
-                  transition={{ duration: 0.8, ease: "easeOut" }}
+              <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                <div
+                  className={`h-full rounded-full ${macro.color} transition-all duration-800 ease-out`}
+                  style={{ width: `${Math.min(percentage, 100)}%` }}
                 />
               </div>
             </div>
@@ -90,36 +99,36 @@ const NutritionCard: React.FC<NutritionCardProps> = ({ serving }) => {
         })}
       </div>
 
-      <div className="mt-6 pt-4 border-t border-border">
-        <h4 className="font-medium mb-2">Additional Nutrients</h4>
+      <div className="mt-6 pt-4 border-t border-gray-200">
+        <h4 className="font-medium mb-2 text-gray-800">Additional Nutrients</h4>
         <div className="grid grid-cols-2 gap-2 text-sm">
           <div className="flex justify-between">
-            <span>Fiber</span>
-            <span>{serving?.fiber || '0'}g</span>
+            <span className="text-gray-600">Fiber</span>
+            <span className="text-gray-800">{formatValue(getValue(serving?.fiber), 'g')}</span>
           </div>
           <div className="flex justify-between">
-            <span>Sugar</span>
-            <span>{serving?.sugar || '0'}g</span>
+            <span className="text-gray-600">Sugar</span>
+            <span className="text-gray-800">{formatValue(getValue(serving?.sugar), 'g')}</span>
           </div>
           <div className="flex justify-between">
-            <span>Sodium</span>
-            <span>{serving?.sodium || '0'}mg</span>
+            <span className="text-gray-600">Sodium</span>
+            <span className="text-gray-800">{formatValue(getValue(serving?.sodium), 'mg')}</span>
           </div>
           <div className="flex justify-between">
-            <span>Potassium</span>
-            <span>{serving?.potassium || '0'}mg</span>
+            <span className="text-gray-600">Potassium</span>
+            <span className="text-gray-800">{formatValue(getValue(serving?.potassium), 'mg')}</span>
           </div>
           <div className="flex justify-between">
-            <span>Vitamin C</span>
-            <span>{serving.vitamin_c || '0'}%</span>
+            <span className="text-gray-600">Vitamin C</span>
+            <span className="text-gray-800">{formatValue(getValue(serving.vitamin_c), '%')}</span>
           </div>
           <div className="flex justify-between">
-            <span>Calcium</span>
-            <span>{serving.calcium || '0'}%</span>
+            <span className="text-gray-600">Calcium</span>
+            <span className="text-gray-800">{formatValue(getValue(serving.calcium), '%')}</span>
           </div>
           <div className="flex justify-between">
-            <span>Iron</span>
-            <span>{serving.iron || '0'}%</span>
+            <span className="text-gray-600">Iron</span>
+            <span className="text-gray-800">{formatValue(getValue(serving.iron), '%')}</span>
           </div>
         </div>
       </div>

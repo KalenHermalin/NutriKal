@@ -1,21 +1,27 @@
 import { useState, useRef, useEffect } from 'react';
 import { Circle } from 'lucide-react';
-import { useAnalyzePicture } from '../hooks/useApi';
+import { useAnalyzePicture, useScanBarcode } from '../hooks/useApi';
 import { useNavigate } from 'react-router-dom';
-import { Food } from '../types';
 import LoadingSpinner from './common/LoadingSpinner';
 import { useNotification } from './ErrorSystem';
-
+import { MealServerResponse } from '../types';
+import { isIOS } from '../utils/isIos';
+import { BarcodeDetectorPolyfill } from '@undecaf/barcode-detector-polyfill'
 type CameraState = 'checking' | 'requesting' | 'active' | 'denied' | 'error' | 'stopped';
-
-const CameraScanner = () => {
+interface CameraScannerProps {
+  mode: string;
+}
+const CameraScanner = ({ mode }: CameraScannerProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const [torch, setTorch] = useState<boolean>(false);
   const [cameraState, setCameraState] = useState<CameraState>('checking');
+  const [barcodeAvalible, setBarcodeAvalible] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const { addNotifications } = useNotification();
   const { analyzePicture } = useAnalyzePicture();
+  const { scanBarcode } = useScanBarcode();
 
   const retryAccess = () => {
     setCameraState('checking');
@@ -36,26 +42,33 @@ const CameraScanner = () => {
       }
 
       if ('permissions' in navigator) {
-        const permission = await navigator.permissions.query({ name: 'camera' as PermissionName });
-        console.log('Camera permission status:', permission.state);
+        navigator.permissions.query({ name: 'camera' }).then(res => {
+          if (res.state === 'prompt') {
 
-        if (permission.state === 'granted') {
-          await startCamera();
-        } else if (permission.state === 'denied') {
-          setCameraState('denied');
-          addNotifications({
-            message: 'Camera access is blocked. Please enable camera permissions in your browser settings.',
-            type: 'user-error',
-            userAction: {
-              label: 'Retry',
-              onClick: retryAccess
-            }
-          });
-        } else {
-          await startCamera();
-        }
+            addNotifications({
+              message: "Requesting camera access...",
+              type: "info"
+            })
+            startCamera();
+          }
+          if (res.state === 'denied') {
+            addNotifications({
+              message: "Camera access denied. Please allow camera permissions in your browser settings.",
+              type: "user-error"
+            })
+          }
+          if (res.state === 'granted') {
+            startCamera();
+          }
+
+        })
+
       } else {
-        await startCamera();
+        addNotifications({
+          message: 'Permissions API not supported in this browser. Please use a modern browser.',
+          type: 'system-critical'
+        });
+        return;
       }
     } catch (err) {
       console.error('Permission check error:', err);
@@ -75,13 +88,8 @@ const CameraScanner = () => {
         console.log('Camera track stopped:', track.label);
       });
       streamRef.current = null;
+      setCameraState('stopped');
     }
-  };
-
-  const stopCamera = () => {
-    stopStream();
-    setCameraState('stopped');
-    console.log('Camera manually stopped');
   };
 
   const startCamera = async () => {
@@ -93,14 +101,17 @@ const CameraScanner = () => {
         video: {
           width: { ideal: 1280 },
           height: { ideal: 720 },
-          facingMode: 'environment'
+          facingMode: 'environment',
         },
         audio: false
       });
-
       streamRef.current = stream;
 
       if (videoRef.current) {
+        addNotifications({
+          message: 'Camera access granted. Starting video feed...',
+          type: 'info'
+        });
         videoRef.current.srcObject = stream;
         videoRef.current.onloadedmetadata = () => {
           if (videoRef.current) {
@@ -120,8 +131,6 @@ const CameraScanner = () => {
           }
         };
       }
-
-      console.log('Camera started successfully');
     } catch (err) {
       console.error('Camera access error:', err);
 
@@ -168,10 +177,123 @@ const CameraScanner = () => {
       }
     }
   };
+  const toggleTorch = async () => {
+    const track = streamRef.current?.getVideoTracks()[0];
+    const capabilities = track?.getCapabilities();
+    if (track) {
+      if (capabilities) {
+        if ('torch' in capabilities) {
+          // Toggle torch by keeping a local state (for demo purposes, always turn on)
+          setTorch(prev => !prev);
+          track.applyConstraints({
+            //@ts-ignore
+            advanced: [{ torch: torch }]
+          });
+        }
+      }
+    }
 
-  const takePhoto = async () => {
-    setIsLoading(true);
+  }
+
+  const captureBarcode = async (canvas: HTMLCanvasElement) => {
+
+    try {
+
+      //@ts-ignore
+      const barcodeDetector = isIOS() ? new BarcodeDetectorPolyfill({ formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e'] }) : new BarcodeDetector({ formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e'] });
+      const barcodes = await barcodeDetector.detect(canvas);
+      if (barcodes.length > 0) {
+        addNotifications({
+          message: `Detected ${barcodes.length} barcode(s). Processing...`,
+          type: 'info'
+        });
+        const barcode = barcodes[0];
+        if (barcode.format === 'upc_a') {
+          barcode.rawValue = `0${barcode.rawValue}`;
+        }
+        if (barcode.format === 'ean_8') {
+          barcode.rawValue = `00000${barcode.rawValue}`;
+        }
+        const { data, error, isError } = await scanBarcode(barcode.rawValue);
+        if (isError && error) {
+          addNotifications({
+            message: error.message,
+            type: 'user-error',
+          });
+          setIsLoading(false);
+          return;
+        }
+
+        const newState: MealServerResponse = {
+          ingredients: [data.foods],
+          success: true,
+          meal_name: data.foods.food_name || data.foods._brand_name
+        }
+        navigate(`/food`, {
+          state: { mealData: newState }
+        });
+      }
+      else {
+        addNotifications({
+          message: 'No barcodes detected. Please try again with a clearer image.',
+          type: 'user-error',
+        });
+        setIsLoading(false);
+      }
+    } catch (error) {
+      console.error("Error detecting barcodes:", error);
+      addNotifications({
+        message: `Failed to detect barcodes. Please try again. ${(error as Error).message}`,
+        type: 'user-error',
+
+      });
+      setIsLoading(false);
+    }
+
+  }
+
+  const captureMeal = async (base64Image: string) => {
+    try {
+      const { data, error, isError } = await analyzePicture(base64Image);
+      if (isError && error) {
+        addNotifications({
+          message: error.message,
+          type: 'user-error',
+        });
+        setIsLoading(false);
+        return
+      }
+
+      console.log("CamScan: ", data);
+
+      if (data && data.ingredients && data.ingredients.length >= 1) {
+
+        navigate(`/food`, {
+          state: { mealData: data }
+        });
+      } else {
+        console.warn('No ingredients found in the analysis result.');
+        addNotifications({
+          message: 'No food detected. Try taking a clearer picture with better lighting.',
+          type: 'user-error',
+        });
+        setIsLoading(false);
+      }
+    } catch (error) {
+      console.log(error)
+      addNotifications({
+        message: 'Failed to analyze the picture. Please check your internet connection and try again.',
+        type: 'user-error',
+      });
+      setIsLoading(false);
+    }
+  }
+
+
+
+  const captureCamera = async () => {
     if (videoRef.current) {
+      setIsLoading(true);
       const canvas = document.createElement('canvas');
       canvas.width = videoRef.current.videoWidth;
       canvas.height = videoRef.current.videoHeight;
@@ -179,92 +301,50 @@ const CameraScanner = () => {
       if (ctx) {
         ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
         const base64Image = canvas.toDataURL('image/jpeg').split(',')[1];
-
-        try {
-          const { data, error, isError } = await analyzePicture(base64Image);
-          if (isError && error) {
-            addNotifications({
-              message: error.message,
-              type: 'user-error',
-              userAction: {
-                label: 'Try Again',
-                onClick: takePhoto
-              }
-            });
-            setIsLoading(false);
-            return
-          }
-
-          console.log("CamScan: ", data);
-
-          if (data && data.ingredients && data.ingredients.length === 1) {
-            const food: Food = data.ingredients[0];
-            // Make sure we're passing the food object correctly
-            navigate(`/food/${food.food_id}`, {
-              state: { food }
-            });
-          } else if (data && data.ingredients && data.ingredients.length > 1) {
-            // Pass the entire meal array as state
-            navigate('/meal', {
-              state: { meal: data.ingredients }
-            });
-          } else {
-            console.warn('No ingredients found in the analysis result.');
-            addNotifications({
-              message: 'No food detected. Try taking a clearer picture with better lighting.',
-              type: 'user-error',
-              userAction: {
-                label: 'Try Again',
-                onClick: takePhoto
-              }
-            });
-            setIsLoading(false);
-          }
-        } catch (error) {
-          console.log(error)
+        if (!base64Image) {
           addNotifications({
-            message: 'Failed to analyze the picture. Please check your internet connection and try again.',
+            message: 'Failed to capture image. Please try again.',
             type: 'user-error',
           });
           setIsLoading(false);
+          return;
         }
-      } else {
-        addNotifications({
-          message: 'Failed to process the image. Please try again.',
-          type: 'system-critical'
-        });
-        setIsLoading(false);
-
+        else if (mode === 'barcode' && !barcodeAvalible) {
+          addNotifications({
+            message: 'Barcode detection is not available in this browser.',
+            type: 'user-error',
+          });
+          setIsLoading(false);
+          return;
+        }
+        else if (mode === 'barcode') {
+          await captureBarcode(canvas);
+        }
+        else if (mode === 'camera') {
+          await captureMeal(base64Image);
+        }
       }
+    } else {
+      addNotifications({
+        message: 'Video element not found. Please ensure the camera is active.',
+        type: 'user-error',
+      });
     }
-  };
-
+  }
 
   useEffect(() => {
+    if ('BarcodeDetector' in globalThis) {
+      setBarcodeAvalible(true);
+    } else {
+      setBarcodeAvalible(false);
+    }
     checkPermissions();
     // Cleanup on unmount
     return () => {
       console.log('CameraFeed component unmounting, cleaning up...');
-      stopCamera()
+      stopStream();
     };
   }, []);
-
-
-
-  const shutterButtonClass = `
-     rounded-full
-     bg-white
-     shadow-lg
-     border-4
-     border-gray-200
-     h-20
-     w-20
-     flex
-     items-center
-     justify-center
-     focus:outline-none
-     ${isLoading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-100 active:bg-gray-200 cursor-pointer'}
-   `;
 
   return (
     <div className="camera-container">
@@ -276,11 +356,11 @@ const CameraScanner = () => {
           muted
           className={`camera-video w-full h-full ${cameraState !== 'active' ? 'invisible' : ''}`}
         />
-
+        <button onClick={toggleTorch}>Click me for torch</button>
         {cameraState === 'active' && (
           <button
             className="camera-shutter-button absolute bottom-4 left-1/2 transform -translate-x-1/2"
-            onClick={takePhoto}
+            onClick={captureCamera}
             disabled={isLoading}
           >
             {isLoading ? (
@@ -293,41 +373,15 @@ const CameraScanner = () => {
       </div>
 
       {cameraState === 'requesting' && (
-        <RequestiongCamereaComp />
+        <div className="flex flex-col items-center justify-center">
+          <LoadingSpinner size={128} color='#333' />
+          <p className="mt-4 text-center text-gray-700">Requesting camera access...</p>
+        </div>
+
       )}
       {cameraState === 'denied' && <div className="overlay">No access to camera. Please allow in settings.</div>}
     </div>
   );
 };
 
-
-const RequestiongCamereaComp = () => {
-  const { addNotifications } = useNotification()
-  useEffect(() => {
-    if ('BarcodeDetector' in globalThis) {
-      addNotifications({
-        message: "Barcode Detector is avalaiable",
-        type: 'info'
-      })
-    } else {
-      addNotifications({
-        message: "Barcode detector API is not avalaiable, some browers need to enable this feature",
-        type: 'info'
-      })
-    }
-    navigator.permissions.query({ name: 'camera' }).then(res => {
-      if (res.state === 'prompt')
-        addNotifications({
-          message: "Requesting camera access...",
-          type: "info"
-        })
-    })
-  }, [])
-  return (
-    <div className="flex flex-col items-center justify-center">
-      <LoadingSpinner size={128} color='#333' />
-      <p className="mt-4 text-center text-gray-700">Requesting camera access...</p>
-    </div>
-  )
-}
 export default CameraScanner;

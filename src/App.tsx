@@ -30,7 +30,7 @@ function App() {
               <Route index element={<Dashboard />} />
               <Route path="search" element={<Search />} />
               <Route path="analyze" element={<MealAnalysis />} />
-              <Route path="food/:foodId" element={<FoodDetails />} />
+              <Route path="food" element={<FoodDetails />} />
               <Route path="meal" element={<MealDetails />} />
               <Route path="profile" element={<Profile />} />
             </Route>
