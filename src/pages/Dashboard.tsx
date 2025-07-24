@@ -82,6 +82,7 @@ const Dashboard = () => {
   };
 
   return (
+
     <div className="space-y-6">
       {/* Daily Calories */}
       <motion.div

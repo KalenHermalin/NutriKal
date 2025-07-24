@@ -10,6 +10,14 @@ const ServiceWorkerInitializer = () => {
 
   React.useEffect(() => {
     if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.onmessage = (event) => {
+        if (event.data === 'activated')
+          addNotifications({
+            message: "Service Worker activated",
+            type: "info",
+          })
+      };
+
       navigator.serviceWorker.register('/sw.js', { scope: '/' }).then(reg => {
         reg.addEventListener('updatefound', () => {
           const newWorker = reg.installing
@@ -17,8 +25,14 @@ const ServiceWorkerInitializer = () => {
             newWorker.addEventListener('statechange', () => {
               if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
                 addNotifications({
-                  message: "New Service Worker Installed, refreshing to use",
-                  type: "info"
+                  message: "New content is available, click to refresh",
+                  type: "info",
+                  userAction: {
+                    label: "Refresh",
+                    onClick() {
+                      window.location.reload();
+                    },
+                  }
                 })
                 newWorker.postMessage('skipWaiting');
 
@@ -54,23 +68,6 @@ const ServiceWorkerInitializer = () => {
         type: 'info'
       })
     }
-
-    navigator.serviceWorker.addEventListener('message', (event) => {
-      if (event.data === 'Skiped_waiting')
-        addNotifications({
-          message: "We skipped waiting",
-          type: "info"
-        });
-    })
-return () => {
-      navigator.serviceWorker.removeEventListener('message', (event) => {
-        if (event.data === 'Skiped_waiting')
-          addNotifications({
-            message: "We skipped waiting",
-            type: "info"
-          });
-      })
-}
   }, []);
 
   return null;
@@ -79,6 +76,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
   <ErrorProvider>
     <ServiceWorkerInitializer />
     <App />
+
   </ErrorProvider>
 );
 
