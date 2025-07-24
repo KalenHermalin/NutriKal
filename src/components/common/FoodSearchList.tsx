@@ -6,7 +6,7 @@ import { useFoodTracking } from '../../hooks/useFoodTracking';
 import { Food, Serving } from '../../types';
 import LoadingSpinner from './LoadingSpinner';
 import { useNotification } from '../ErrorSystem';
-import { FoodLog } from '../../utils/indexedDB';
+import { FoodLog, MealLog } from '../../utils/indexedDB';
 
 interface FoodSearchListProps {
   onFoodAdded?: () => void;
@@ -80,7 +80,21 @@ const FoodSearchList: React.FC<FoodSearchListProps> = ({ onFoodAdded }) => {
         fat,
         timestamp: Date.now()
       }
-      const success = await addFoodToLog('', [newLog])
+      const date = new Date()
+      const log: MealLog = {
+        id: `meal_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        date: `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`,
+        meal: {
+          meal_name: selectedFood.food_name,
+          ingredients: [newLog],
+        },
+        calories,
+        protein,
+        carbs,
+        fat,
+        timestamp: Date.now()
+      }
+      const success = await addFoodToLog(log)
 
       if (success) {
         setSelectedFood(null);
@@ -166,7 +180,7 @@ const FoodSearchList: React.FC<FoodSearchListProps> = ({ onFoodAdded }) => {
       )}
 
       {/* Search Results */}
-      {!isLoading && foods && foods.length > 0 && !selectedFood && (
+      {!isLoading && foods && foods.length > 0 && !selectedFood && query && (
         <motion.div
           className="space-y-2 max-h-96 overflow-y-auto"
           initial={{ opacity: 0 }}
