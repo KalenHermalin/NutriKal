@@ -20,9 +20,8 @@ const ServiceWorkerInitializer = () => {
                   message: "New Service Worker Installed, refreshing to use",
                   type: "info"
                 })
-                setTimeout(() => {
-                  newWorker.postMessage({ type: 'skipWaiting' })
-                }, 3000)
+                newWorker.postMessage('skipWaiting');
+
               }
             })
           } else {
@@ -55,6 +54,23 @@ const ServiceWorkerInitializer = () => {
         type: 'info'
       })
     }
+
+    navigator.serviceWorker.addEventListener('message', (event) => {
+      if (event.data === 'Skiped_waiting')
+        addNotifications({
+          message: "We skipped waiting",
+          type: "info"
+        });
+    })
+return () => {
+      navigator.serviceWorker.removeEventListener('message', (event) => {
+        if (event.data === 'Skiped_waiting')
+          addNotifications({
+            message: "We skipped waiting",
+            type: "info"
+          });
+      })
+}
   }, []);
 
   return null;
