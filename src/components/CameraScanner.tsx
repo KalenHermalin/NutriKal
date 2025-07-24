@@ -177,7 +177,6 @@ const CameraScanner = ({ mode }: CameraScannerProps) => {
     }
   };
   const toggleTorch = async () => {
-
     const track = streamRef.current?.getVideoTracks()[0];
     const capabilities = track?.getCapabilities();
     if (track) {
