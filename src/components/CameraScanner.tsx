@@ -180,6 +180,10 @@ const CameraScanner = ({ mode }: CameraScannerProps) => {
   const toggleTorch = async () => {
     const track = streamRef.current?.getVideoTracks()[0];
     const capabilities = track?.getCapabilities();
+    addNotifications({
+      message: `Toggling torch: ${!torch ? 'On' : 'Off'}`,
+      type: 'info'
+    });
     if (track) {
       if (capabilities) {
         if ('torch' in capabilities) {

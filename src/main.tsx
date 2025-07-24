@@ -13,19 +13,11 @@ const ServiceWorkerInitializer = () => {
       navigator.serviceWorker.onmessage = (event) => {
         if (event.data === 'skippedWaiting') {
           addNotifications({
-            message: "skipped waiting",
+            message: "skipped waiting! Updated!",
             type: "info",
           });
       }
       };
-      navigator.serviceWorker.addEventListener('message', (event) => {
-        if (event.data === 'skippedWaiting') {
-          addNotifications({
-            message: "Service Worker has skipped waiting",
-            type: "info",
-          });
-        }
-      })
 
       navigator.serviceWorker.register('/sw.js', { scope: '/' }).then(reg => {
         reg.addEventListener('updatefound', () => {
