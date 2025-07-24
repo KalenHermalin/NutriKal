@@ -1,11 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Plus, ArrowLeft, Info, List, Minus } from 'lucide-react';
+import { Plus, ArrowLeft, Minus } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useFoodTracking } from '../hooks/useFoodTracking';
-import NutritionCard from '../components/common/NutritionCard';
 import LoadingSpinner from '../components/common/LoadingSpinner';
-import { MealServerResponse, Food, Serving } from '../types';
+import { MealServerResponse, Food} from '../types';
 import { FoodLog, MealLog } from '../utils/indexedDB';
 
 interface FoodDetailsProps {
@@ -258,10 +257,11 @@ const FoodDetails: React.FC<FoodDetailsProps> = () => {
                 timestamp: Date.now()
               };
             });
+            const date = new Date()
             
             const mealLog: MealLog = {
               id: `log_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-              date: new Date().toISOString().split('T')[0],
+              date: `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`,
               meal: {
                 meal_name: mealData.meal_name,
                 ingredients: foodLogs

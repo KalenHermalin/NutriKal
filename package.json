@@ -10,6 +10,7 @@
     "prod": "vite build && vite preview"
   },
   "dependencies": {
+    "@undecaf/barcode-detector-polyfill": "^0.9.23",
     "framer-motion": "^10.16.4",
     "lucide-react": "^0.292.0",
     "react": "^18.2.0",

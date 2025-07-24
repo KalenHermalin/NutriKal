@@ -63,7 +63,7 @@ const CircularProgress: React.FC<CircularProgressProps> = ({
         
         {/* Center text */}
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-xl font-bold leading-none">{value.toFixed(2)}{unit}</span>
+          <span className="text-xl font-bold leading-none">{value.toFixed(1)}{unit}</span>
           <span className="text-xs text-muted">{label}</span>
         </div>
       </div>

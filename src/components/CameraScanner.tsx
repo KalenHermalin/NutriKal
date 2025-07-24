@@ -5,7 +5,8 @@ import { useNavigate } from 'react-router-dom';
 import LoadingSpinner from './common/LoadingSpinner';
 import { useNotification } from './ErrorSystem';
 import { MealServerResponse } from '../types';
-
+import { isIOS } from '../utils/isIos';
+import { BarcodeDetectorPolyfill } from '@undecaf/barcode-detector-polyfill'
 type CameraState = 'checking' | 'requesting' | 'active' | 'denied' | 'error' | 'stopped';
 interface CameraScannerProps {
   mode: string;
@@ -199,7 +200,7 @@ const CameraScanner = ({ mode }: CameraScannerProps) => {
     try {
 
       //@ts-ignore
-      const barcodeDetector = new BarcodeDetector({ formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e'] });
+      const barcodeDetector = isIOS() ? new BarcodeDetectorPolyfill({ formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e'] }) : new BarcodeDetector({ formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e'] });
       const barcodes = await barcodeDetector.detect(canvas);
       if (barcodes.length > 0) {
         addNotifications({

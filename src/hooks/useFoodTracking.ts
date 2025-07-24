@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { foodTrackingDB, DailyTracking, UserSettings, FoodLog, MealLog } from '../utils/indexedDB';
+import { foodTrackingDB, DailyTracking, UserSettings, MealLog } from '../utils/indexedDB';
 
 export const useFoodTracking = () => {
   const [dailyTracking, setDailyTracking] = useState<DailyTracking | null>(null);
