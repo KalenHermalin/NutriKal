@@ -215,14 +215,14 @@ const Dashboard = () => {
                       )}
                       <p className="text-xs text-muted">{log.meal.ingredients[0].servingSize}</p>
                       <div className="flex gap-4 text-xs mt-1">
-                        <span className="text-purple-400">P: {log.meal.ingredients[0].protein}g</span>
-                        <span className="text-blue-400">C: {log.meal.ingredients[0].carbs}g</span>
-                        <span className="text-yellow-400">F: {log.meal.ingredients[0].fat}g</span>
+                        <span className="text-purple-400">P: {log.meal.ingredients[0].protein.toFixed(1)}g</span>
+                        <span className="text-blue-400">C: {log.meal.ingredients[0].carbs.toFixed(1)}g</span>
+                        <span className="text-yellow-400">F: {log.meal.ingredients[0].fat.toFixed(1)}g</span>
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
                       <div className="text-right">
-                        <p className="font-semibold">{log.meal.ingredients[0].calories} cal</p>
+                        <p className="font-semibold">{log.meal.ingredients[0].calories.toFixed(0)} cal</p>
                       </div>
                       <button
                         onClick={() => removeFoodFromLog(log.id)}
