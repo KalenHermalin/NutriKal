@@ -279,10 +279,17 @@ const FoodSearchList: React.FC<FoodSearchListProps> = ({ onFoodAdded }) => {
                 </button>
                 <input
                   type="number"
-                  min="0.25"
+                  min="0"
                   step="0.25"
                   value={quantity}
-                  onChange={(e) => setQuantity(Math.max(0.25, parseFloat(e.target.value) || 0.25))}
+                  onChange={(e) => setQuantity(Math.max(0.25, parseFloat(e.target.value)))}
+                  onBlur={(e) => {
+                    if (e.target.value === '') {
+                      setQuantity(1);
+                    } else {
+                      setQuantity(Math.max(0.25, parseFloat(e.target.value)));
+                    }
+                  }}
                   className="input text-center flex-1"
                 />
                 <button
