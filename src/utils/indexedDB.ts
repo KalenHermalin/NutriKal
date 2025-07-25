@@ -1,5 +1,4 @@
 
-
 // IndexedDB utility for food tracking data
 export interface DailyTracking {
   id: string;
@@ -80,9 +79,9 @@ class FoodTrackingDB {
           db.createObjectStore('userSettings', { keyPath: 'id' });
         }
 
-        // Food logs store
-        if (!db.objectStoreNames.contains('foodLogs')) {
-          const logsStore = db.createObjectStore('foodLogs', { keyPath: 'id' });
+        // Meal logs store
+        if (!db.objectStoreNames.contains('mealLogs')) {
+          const logsStore = db.createObjectStore('mealLogs', { keyPath: 'id' });
           logsStore.createIndex('date', 'date', { unique: false });
           logsStore.createIndex('timestamp', 'timestamp', { unique: false });
         }

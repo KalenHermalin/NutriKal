@@ -124,7 +124,12 @@ const Profile = () => {
               min="1000"
               max="5000"
               value={localSettings.calorieGoal}
-              onChange={(e) => setLocalSettings(prev => ({ ...prev, calorieGoal: parseInt(e.target.value) || 2000 }))}
+              onChange={(e) => setLocalSettings(prev => ({ ...prev, calorieGoal: parseInt(e.target.value) }))}
+              onBlur={(e) => { 
+                if (e.target.value === '') {
+                  setLocalSettings(prev => ({ ...prev, calorieGoal: userSettings?.calorieGoal || 2000 }));
+                }
+              }}
               className="input"
             />
           </div>
@@ -136,7 +141,12 @@ const Profile = () => {
               min="50"
               max="300"
               value={localSettings.proteinGoal}
-              onChange={(e) => setLocalSettings(prev => ({ ...prev, proteinGoal: parseInt(e.target.value) || 150 }))}
+              onChange={(e) => setLocalSettings(prev => ({ ...prev, proteinGoal: parseInt(e.target.value) }))}
+              onBlur={(e) => {
+                if (e.target.value === '') {
+                  setLocalSettings(prev => ({ ...prev, proteinGoal: userSettings?.proteinGoal || 150 }));
+                }
+              }}
               className="input"
             />
           </div>
@@ -148,7 +158,12 @@ const Profile = () => {
               min="100"
               max="500"
               value={localSettings.carbsGoal}
-              onChange={(e) => setLocalSettings(prev => ({ ...prev, carbsGoal: parseInt(e.target.value) || 300 }))}
+              onChange={(e) => setLocalSettings(prev => ({ ...prev, carbsGoal: parseInt(e.target.value) }))}
+              onBlur={(e) => {
+                if (e.target.value === '') {
+                  setLocalSettings(prev => ({ ...prev, carbsGoal: userSettings?.carbsGoal || 300 }));
+                }
+              }}
               className="input"
             />
           </div>
@@ -160,7 +175,12 @@ const Profile = () => {
               min="30"
               max="150"
               value={localSettings.fatGoal}
-              onChange={(e) => setLocalSettings(prev => ({ ...prev, fatGoal: parseInt(e.target.value) || 70 }))}
+              onChange={(e) => setLocalSettings(prev => ({ ...prev, fatGoal: parseInt(e.target.value)}))}
+              onBlur={(e) => {
+                if (e.target.value === '') {
+                  setLocalSettings(prev => ({ ...prev, fatGoal: userSettings?.fatGoal || 70 }));
+                }
+              }}
               className="input"
             />
           </div>
@@ -209,9 +229,9 @@ const Profile = () => {
         transition={{ duration: 0.5, delay: 0.3 }}
       >
         <h2 className="text-lg font-semibold mb-4">About</h2>
-        <p className="text-sm text-muted mb-2">Version 2.0.0</p>
+        <p className="text-sm text-muted mb-2">Version 0.0.1</p>
         <p className="text-sm text-muted">
-          NutriTrack helps you monitor your nutrition with ease. Track your meals,
+          NutriKal helps you monitor your nutrition with ease. Track your meals,
           scan barcodes, analyze photos, and maintain a healthy lifestyle with 
           comprehensive food logging and progress tracking.
         </p>
