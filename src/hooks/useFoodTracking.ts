@@ -104,7 +104,20 @@ export const useFoodTracking = () => {
       return false;
     }
   };
-
+  const getUserSettings = async () => {
+    try {
+      setIsLoading(true);
+      const settings = await foodTrackingDB.getUserSettings();
+      setUserSettings(settings);
+      return settings;
+    } catch (err) {
+      console.error('Get user settings error:', err);
+      setError('Failed to load user settings');
+      return null;
+    } finally {
+      setIsLoading(false);
+    }
+  }
   const updateUserSettings = async (newSettings: Partial<UserSettings>) => {
     try {
       if (!userSettings) return false;
@@ -149,6 +162,7 @@ export const useFoodTracking = () => {
     addFoodToLog,
     removeFoodFromLog,
     updateUserSettings,
+    getUserSettings,
     refreshData: initializeData,
   };
 };

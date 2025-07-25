@@ -1,14 +1,14 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useTheme } from '../contexts/ThemeContext';
 import { useFoodTracking } from '../hooks/useFoodTracking';
 import { Sun, Moon, Scale, Target, Save } from 'lucide-react';
 import { motion } from 'framer-motion';
 import LoadingSpinner from '../components/common/LoadingSpinner';
-
+import { useNotification } from '../components/ErrorSystem';
 const Profile = () => {
   const { theme, toggleTheme } = useTheme();
-  const { userSettings, updateUserSettings, isLoading } = useFoodTracking();
-  
+  const { userSettings, updateUserSettings, isLoading, getUserSettings } = useFoodTracking();
+const { addNotifications } = useNotification();
   const [localSettings, setLocalSettings] = useState({
     units: userSettings?.units || 'metric',
     calorieGoal: userSettings?.calorieGoal || 2000,
@@ -16,7 +16,19 @@ const Profile = () => {
     carbsGoal: userSettings?.carbsGoal || 300,
     fatGoal: userSettings?.fatGoal || 70,
   });
-  
+  useEffect(() => {
+    getUserSettings().then(settings => {
+      if (settings) {
+        setLocalSettings({
+          units: settings.units,
+          calorieGoal: settings.calorieGoal,
+          proteinGoal: settings.proteinGoal,
+          carbsGoal: settings.carbsGoal,
+          fatGoal: settings.fatGoal,
+        });
+      }
+    });
+  }, []);
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
@@ -27,7 +39,7 @@ const Profile = () => {
         ...localSettings,
         theme: theme,
       });
-      
+
       if (success) {
         setSaveSuccess(true);
         setTimeout(() => setSaveSuccess(false), 2000);
@@ -66,7 +78,7 @@ const Profile = () => {
         transition={{ duration: 0.5, delay: 0.1 }}
       >
         <h2 className="text-lg font-semibold mb-4">App Settings</h2>
-        
+
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -115,7 +127,7 @@ const Profile = () => {
           <Target className="text-primary" />
           <h2 className="text-lg font-semibold">Nutrition Goals</h2>
         </div>
-        
+
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium mb-2">Daily Calories</label>
@@ -125,7 +137,7 @@ const Profile = () => {
               max="5000"
               value={localSettings.calorieGoal}
               onChange={(e) => setLocalSettings(prev => ({ ...prev, calorieGoal: parseInt(e.target.value) }))}
-              onBlur={(e) => { 
+              onBlur={(e) => {
                 if (e.target.value === '') {
                   setLocalSettings(prev => ({ ...prev, calorieGoal: userSettings?.calorieGoal || 2000 }));
                 }
@@ -133,7 +145,7 @@ const Profile = () => {
               className="input"
             />
           </div>
-          
+
           <div>
             <label className="block text-sm font-medium mb-2">Protein (g)</label>
             <input
@@ -150,7 +162,7 @@ const Profile = () => {
               className="input"
             />
           </div>
-          
+
           <div>
             <label className="block text-sm font-medium mb-2">Carbohydrates (g)</label>
             <input
@@ -167,7 +179,7 @@ const Profile = () => {
               className="input"
             />
           </div>
-          
+
           <div>
             <label className="block text-sm font-medium mb-2">Fat (g)</label>
             <input
@@ -175,7 +187,7 @@ const Profile = () => {
               min="30"
               max="150"
               value={localSettings.fatGoal}
-              onChange={(e) => setLocalSettings(prev => ({ ...prev, fatGoal: parseInt(e.target.value)}))}
+              onChange={(e) => setLocalSettings(prev => ({ ...prev, fatGoal: parseInt(e.target.value) }))}
               onBlur={(e) => {
                 if (e.target.value === '') {
                   setLocalSettings(prev => ({ ...prev, fatGoal: userSettings?.fatGoal || 70 }));
@@ -204,7 +216,7 @@ const Profile = () => {
               </>
             )}
           </button>
-          
+
           {saveSuccess && (
             <motion.div
               initial={{ opacity: 0, scale: 0.8 }}
@@ -232,7 +244,7 @@ const Profile = () => {
         <p className="text-sm text-muted mb-2">Version 0.0.1</p>
         <p className="text-sm text-muted">
           NutriKal helps you monitor your nutrition with ease. Track your meals,
-          scan barcodes, analyze photos, and maintain a healthy lifestyle with 
+          scan barcodes, analyze photos, and maintain a healthy lifestyle with
           comprehensive food logging and progress tracking.
         </p>
       </motion.div>
