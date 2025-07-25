@@ -44,11 +44,6 @@ const CameraScanner = ({ mode }: CameraScannerProps) => {
       if ('permissions' in navigator) {
         navigator.permissions.query({ name: 'camera' }).then(res => {
           if (res.state === 'prompt') {
-
-            addNotifications({
-              message: "Requesting camera access...",
-              type: "info"
-            })
             startCamera();
           }
           if (res.state === 'denied') {
@@ -108,10 +103,7 @@ const CameraScanner = ({ mode }: CameraScannerProps) => {
       streamRef.current = stream;
 
       if (videoRef.current) {
-        addNotifications({
-          message: 'Camera access granted. Starting video feed...',
-          type: 'info'
-        });
+        
         videoRef.current.srcObject = stream;
         videoRef.current.onloadedmetadata = () => {
           if (videoRef.current) {
@@ -203,10 +195,6 @@ const CameraScanner = ({ mode }: CameraScannerProps) => {
       const barcodeDetector = isIOS() ? new BarcodeDetectorPolyfill({ formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e'] }) : new BarcodeDetector({ formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e'] });
       const barcodes = await barcodeDetector.detect(canvas);
       if (barcodes.length > 0) {
-        addNotifications({
-          message: `Detected ${barcodes.length} barcode(s). Processing...`,
-          type: 'info'
-        });
         const barcode = barcodes[0];
         if (barcode.format === 'upc_a') {
           barcode.rawValue = `0${barcode.rawValue}`;

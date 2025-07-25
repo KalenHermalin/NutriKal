@@ -4,7 +4,7 @@ import { Plus, ArrowLeft, Minus } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useFoodTracking } from '../hooks/useFoodTracking';
 import LoadingSpinner from '../components/common/LoadingSpinner';
-import { MealServerResponse, Food} from '../types';
+import { MealServerResponse, Food } from '../types';
 import { FoodLog, MealLog } from '../utils/indexedDB';
 
 interface FoodDetailsProps {
@@ -213,7 +213,7 @@ const FoodDetails: React.FC<FoodDetailsProps> = () => {
             />
             <div
               className="bg-yellow-400"
-              style={{ width: `${macrosRef.current  .fatPct}%` }}
+              style={{ width: `${macrosRef.current.fatPct}%` }}
             />
           </div>
           <div className="flex justify-between text-xs mt-1 text-muted">
@@ -250,7 +250,7 @@ const FoodDetails: React.FC<FoodDetailsProps> = () => {
                 foodName: food.food_name,
                 brandName: food.brand_name,
                 servingSize: food.servings[food.selectedServing || 0].serving_description,
-                calories: parseFloat(food.servings[food.selectedServing || 0].calories) || 0 ,
+                calories: parseFloat(food.servings[food.selectedServing || 0].calories) || 0,
                 protein: parseFloat(food.servings[food.selectedServing || 0].protein) || 0,
                 carbs: parseFloat(food.servings[food.selectedServing || 0].carbohydrate) || 0,
                 fat: parseFloat(food.servings[food.selectedServing || 0].fat) || 0,
@@ -258,7 +258,7 @@ const FoodDetails: React.FC<FoodDetailsProps> = () => {
               };
             });
             const date = new Date()
-            
+
             const mealLog: MealLog = {
               id: `log_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
               date: `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`,
@@ -413,13 +413,9 @@ const FoodDetails: React.FC<FoodDetailsProps> = () => {
                     onChange={(e) => {
                       const value = e.target.value;
                       // Allow empty string while typing
-                      if (value === '') {
-                        setQuantities(prev => ({ ...prev, [foodKey]: 0 }));
-                      } else {
-                        const numValue = parseFloat(value);
-                        if (!isNaN(numValue) && numValue >= 0) {
-                          updateQuantity(foodKey, numValue);
-                        }
+                      const numValue = parseFloat(value);
+                      if (!isNaN(numValue) && numValue >= 0) {
+                        updateQuantity(foodKey, numValue);
                       }
                     }}
                     onBlur={(e) => {
