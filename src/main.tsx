@@ -1,83 +1,10 @@
-import React from 'react';
-import ReactDOM from 'react-dom/client';
-import App from './App';
-import './index.css';
-import { ErrorProvider, useNotification } from './components/ErrorSystem';
+import { createRoot } from 'react-dom/client'
+import './index.css'
+import App from './App.tsx'
+import { ThemeProvider } from './contexts/ThemeContext.tsx'
 
-
-const ServiceWorkerInitializer = () => {
-  const { addNotifications } = useNotification();
-
-  React.useEffect(() => {
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.onmessage = (event) => {
-        if (event.data === 'activated')
-          addNotifications({
-            message: "Service Worker activated",
-            type: "info",
-          })
-      };
-
-      navigator.serviceWorker.register('/sw.js', { scope: '/' }).then(reg => {
-        reg.addEventListener('updatefound', () => {
-          const newWorker = reg.installing
-          if (newWorker) {
-            newWorker.addEventListener('statechange', () => {
-              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                addNotifications({
-                  message: "New content is available, click to refresh",
-                  type: "info",
-                  userAction: {
-                    label: "Refresh",
-                    onClick() {
-                      window.location.reload();
-                    },
-                  }
-                })
-                newWorker.postMessage('skipWaiting');
-
-              }
-            })
-          } else {
-            addNotifications({
-              message: "Failed to find service worker",
-              type: "system-critical",
-              userAction: {
-                label: "Refresh",
-                onClick() {
-                  window.location.reload()
-                },
-              }
-            });
-
-          }
-
-
-        })
-      }).catch(res => {
-        addNotifications({
-          message: `Service Worker registration failed: ${res}`,
-          type: 'system-critical',
-
-        })
-      });
-
-    } else {
-      addNotifications({
-        message: "Service workers are not avaliable on this browser",
-        type: 'info'
-      })
-    }
-  }, []);
-
-  return null;
-};
-ReactDOM.createRoot(document.getElementById('root')!).render(
-  <ErrorProvider>
-    <ServiceWorkerInitializer />
-    <App />
-
-  </ErrorProvider>
-);
-
-
+createRoot(document.getElementById('root')!).render(
+    <ThemeProvider>
+        <App />
+    </ThemeProvider>
+)

@@ -1,44 +1,61 @@
-import React from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { QueryClient, QueryClientProvider } from 'react-query';
-import { ThemeProvider } from './contexts/ThemeContext';
-import Layout from './components/layout/Layout';
-import Dashboard from './pages/Dashboard';
-import Search from './pages/Search';
-import MealAnalysis from './pages/MealAnalysis';
-import FoodDetails from './pages/FoodDetails';
-import Profile from './pages/Profile';
-import MealDetails from './pages/MealDetails';
-import 'react-toastify/dist/ReactToastify.css';
-
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      refetchOnWindowFocus: false,
-      retry: 1,
-    },
-  },
-});
+import { useState } from 'react'
+import { CalorieCard } from './components/CalorieCard.tsx'
+import { FoodLogCard } from './components/FoodLogCard.tsx'
+import { BottomNavigation } from './components/BottomNavigation.tsx'
+import Scanner from './pages/Scanner.tsx';
 
 function App() {
+  const [activeTab, setActiveTab] = useState("home");
+
+
   return (
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider>
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Layout />}>
-              <Route index element={<Dashboard />} />
-              <Route path="search" element={<Search />} />
-              <Route path="analyze" element={<MealAnalysis />} />
-              <Route path="food" element={<FoodDetails />} />
-              <Route path="meal" element={<MealDetails />} />
-              <Route path="profile" element={<Profile />} />
-            </Route>
-          </Routes>
-        </BrowserRouter>
-      </ThemeProvider>
-    </QueryClientProvider>
-  );
+    <div className="flex flex-col m-1">
+      {activeTab === "home" && <HomePage />}
+      {activeTab === 'analyze' && <Scanner />}
+      <BottomNavigation activeTab={activeTab} onTabChange={setActiveTab} />
+    </div>
+
+  )
 }
 
-export default App;
+export default App
+
+
+const HomePage = () => {
+  const calorieData = {
+    consumed: 200,
+    total: 2000,
+    remaining: 1800
+  };
+  const macroData = {
+    protein: 122.0,
+    carbs: 222.0,
+    fat: 41.0,
+    proteinGoal: 150,
+    carbsGoal: 250,
+    fatGoal: 67
+  };
+  const foodEntries = [
+    {
+      id: "1",
+      time: "8:30 PM",
+      name: "Nutella",
+      amount: "2 tbsp",
+      calories: 200,
+      protein: 2.0,
+      carbs: 22.0,
+      fat: 11.0
+    }
+  ];
+
+  return (
+    <>
+      <div className="mb-[.4rem]">
+        <CalorieCard data={macroData} consumed={calorieData.consumed} total={calorieData.total} remaining={calorieData.remaining} />
+      </div>
+      <div className="mt-[.4rem]">
+        <FoodLogCard entries={foodEntries} />
+      </div>
+    </>
+  )
+}
