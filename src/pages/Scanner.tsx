@@ -2,24 +2,22 @@ import { useEffect, useRef, useState } from "react";
 import { Camera, Image, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { BottomNavigation } from "@/components/BottomNavigation";
 
 const Scanner = () => {
   const [scanMode, setScanMode] = useState("scan-food");
   const [hasPhoto, setHasPhoto] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const photoRef = useRef<HTMLCanvasElement>(null);
+  const streamRef = useRef<MediaStream>(null);
 
   const stopVideo = () => {
     let video = videoRef.current;
-    if (video && video.srcObject) {
-      let stream = video.srcObject as MediaStream;
+    if (streamRef.current) {
+      let stream = streamRef.current;
       let tracks = stream.getTracks();
-      console.log("hello");
       tracks.forEach(track =>
         track.stop()
       );
-      video.srcObject = null;
 
     }
   }
@@ -30,6 +28,7 @@ const Scanner = () => {
       let video = videoRef.current;
       //@ts-ignore
       video.srcObject = stream;
+      streamRef.current = stream;
       video?.play();
     })
       .catch(err => {
@@ -55,8 +54,8 @@ const Scanner = () => {
     const original = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => {
-      document.body.style.overflow = original;
       stopVideo();
+      document.body.style.overflow = original;
     };
   }, []);
   return (

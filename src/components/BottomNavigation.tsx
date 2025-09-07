@@ -1,5 +1,7 @@
 import { Home, Search, BarChart3, User } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useLocation, NavLink } from "react-router";
+import { useEffect, useState } from "react";
 
 interface NavItem {
   id: string;
@@ -8,19 +10,20 @@ interface NavItem {
   active?: boolean;
 }
 
-interface BottomNavigationProps {
-  activeTab?: string;
-  onTabChange?: (tabId: string) => void;
-}
-
-export const BottomNavigation = ({ activeTab = "home", onTabChange }: BottomNavigationProps) => {
+export const BottomNavigation = () => {
+  let location = useLocation();
+  const [activeTab, setActiveTab] = useState("")
   const navItems: NavItem[] = [
-    { id: "home", label: "Home", icon: Home },
+    { id: "", label: "Home", icon: Home },
     //{ id: "search", label: "Search", icon: Search },
     { id: "analyze", label: "Analyze", icon: BarChart3 },
     { id: "profile", label: "Profile", icon: User }
   ];
-
+  useEffect(()=> {
+    setActiveTab(location.pathname.slice(1, location.pathname.length))
+ }, [location])
+  
+ 
   return (
     <div className="fixed bottom-0 left-0 right-0 bg-card border-t border-border px-4 py-2">
       <div className="flex justify-around items-center max-w-md mx-auto">
@@ -29,9 +32,9 @@ export const BottomNavigation = ({ activeTab = "home", onTabChange }: BottomNavi
           const isActive = activeTab === item.id;
           
           return (
-            <button
+            <NavLink
               key={item.id}
-              onClick={() => onTabChange?.(item.id)}
+              to={item.id}
               className={cn(
                 "flex flex-col items-center gap-1 py-2 px-3 rounded-lg transition-colors",
                 isActive 
@@ -44,7 +47,7 @@ export const BottomNavigation = ({ activeTab = "home", onTabChange }: BottomNavi
               {isActive && (
                 <div className="w-8 h-0.5 bg-primary rounded-full mt-1" />
               )}
-            </button>
+            </NavLink>
           );
         })}
       </div>

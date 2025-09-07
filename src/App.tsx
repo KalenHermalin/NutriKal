@@ -2,34 +2,37 @@ import { useState } from 'react'
 import { CalorieCard } from './components/CalorieCard.tsx'
 import { FoodLogCard } from './components/FoodLogCard.tsx'
 import { BottomNavigation } from './components/BottomNavigation.tsx'
-import { BrowserRouter, Routes, Route } from 'react-router'
+import { BrowserRouter, Routes, Route, Outlet } from 'react-router'
 import Scanner from './pages/Scanner.tsx';
 import Profile from './pages/Profile.tsx';
 
 function App() {
-  const [activeTab, setActiveTab] = useState<"home" | "analyze" | "profile">("home");
-
 
   return (
-    <Layout>
-      {activeTab === "home" && <HomePage />}
-      {activeTab === 'analyze' && <Scanner />}
-      {activeTab === 'profile' && <Profile />}
+    <BrowserRouter>
+      <Routes>
+        <Route element={<Layout />}>
+          <Route index element={<HomePage />} />
+          <Route path="analyze" element={<Scanner />} />
+          <Route path="profile" element={<Profile />} />
+          <Route path ="*" element={<div>404 Not Found</div>}/>
+        </Route>
 
-    <BottomNavigation activeTab={activeTab} onTabChange={(tabId: string) => setActiveTab(tabId as "home" | "analyze" | "profile")} />
-
-    </Layout>
+      </Routes>
+    </BrowserRouter>
 
   )
 }
 
 export default App
 
-const Layout = ({ children }: {children: React.ReactNode}) => {
+const Layout = () => {
   return (
     <div className="flex flex-col m-1 h-screen">
       <div className="flex-1 flex flex-col">
-        {children}
+        <Outlet />
+        <BottomNavigation />
+
       </div>
 
     </div>
