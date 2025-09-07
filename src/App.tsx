@@ -2,25 +2,40 @@ import { useState } from 'react'
 import { CalorieCard } from './components/CalorieCard.tsx'
 import { FoodLogCard } from './components/FoodLogCard.tsx'
 import { BottomNavigation } from './components/BottomNavigation.tsx'
+import { BrowserRouter, Routes, Route } from 'react-router'
 import Scanner from './pages/Scanner.tsx';
+import Profile from './pages/Profile.tsx';
 
 function App() {
-  const [activeTab, setActiveTab] = useState("home");
+  const [activeTab, setActiveTab] = useState<"home" | "analyze" | "profile">("home");
 
 
   return (
-    <div className="flex flex-col m-1">
+    <Layout>
       {activeTab === "home" && <HomePage />}
       {activeTab === 'analyze' && <Scanner />}
-      <BottomNavigation activeTab={activeTab} onTabChange={setActiveTab} />
-    </div>
+      {activeTab === 'profile' && <Profile />}
+
+    <BottomNavigation activeTab={activeTab} onTabChange={(tabId: string) => setActiveTab(tabId as "home" | "analyze" | "profile")} />
+
+    </Layout>
 
   )
 }
 
 export default App
 
+const Layout = ({ children }: {children: React.ReactNode}) => {
+  return (
+    <div className="flex flex-col m-1 h-screen">
+      <div className="flex-1 flex flex-col">
+        {children}
+      </div>
 
+    </div>
+  )
+
+}
 const HomePage = () => {
   const calorieData = {
     consumed: 200,

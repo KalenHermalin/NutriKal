@@ -1,73 +1,138 @@
-import { useState } from "react";
-import { Camera, Image } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Camera, Image, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { BottomNavigation } from "@/components/BottomNavigation";
 
 const Scanner = () => {
   const [scanMode, setScanMode] = useState("scan-food");
+  const [hasPhoto, setHasPhoto] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const photoRef = useRef<HTMLCanvasElement>(null);
 
+  const stopVideo = () => {
+    let video = videoRef.current;
+    if (video && video.srcObject) {
+      let stream = video.srcObject as MediaStream;
+      let tracks = stream.getTracks();
+      console.log("hello");
+      tracks.forEach(track =>
+        track.stop()
+      );
+      video.srcObject = null;
+
+    }
+  }
+  const getVideo = () => {
+    navigator.mediaDevices.getUserMedia({
+      video: { width: 1080, height: 1920, facingMode: "environment" }, audio: false
+    }).then(stream => {
+      let video = videoRef.current;
+      //@ts-ignore
+      video.srcObject = stream;
+      video?.play();
+    })
+      .catch(err => {
+        console.error("error:", err);
+      });
+  }
+  const takePhoto = () => {
+    let video = videoRef.current;
+    let photo = photoRef.current;
+    if (!video || !photo) return;
+    photo.width = video.videoWidth;
+    photo.height = video.videoHeight;
+    let ctx = photo.getContext("2d");
+    ctx?.drawImage(video, 0, 0);
+    setHasPhoto(true);
+    video.pause();
+  }
+  useEffect(() => {
+    getVideo();
+  }, [videoRef])
+  // Disable scrolling on mount, restore on unmount
+  useEffect(() => {
+    const original = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = original;
+      stopVideo();
+    };
+  }, []);
   return (
-    <div className="min-h-screen bg-background flex flex-col pb-20 items-center justify-center">
+    <div className="flex flex-col items-center overflow-hidden w-full flex-1">
       {/* Header */}
-      <div className="px-4 py-6">
+      <div className="px-4 py-6 flex-shrink-0 w-full">
         <h1 className="text-xl font-semibold text-foreground">Scanner</h1>
       </div>
 
-      {/* Camera Viewfinder */}
-      <div className="flex-1 px-4 pb-6">
-        <div className="relative h-full bg-muted rounded-3xl overflow-hidden">
-          {/* Viewfinder overlay */}
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="w-64 h-64 border-2 border-white rounded-3xl"></div>
-          </div>
-          
-          {/* Placeholder for camera feed */}
-          <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-            <Camera size={48} />
-          </div>
-        </div>
-      </div>
+      {/* Camera Feed - Full available space */}
+      <div className="flex-1 px-4 w-full flex justify-center overflow-hidden pb-24">
+        <div className="relative w-full max-w-[375px] rounded-3xl overflow-hidden">
+          {/* Camera feed placeholder */}
+          {/* VIDEO FEED */}
 
-      {/* Bottom Controls */}
-      <div className="px-4 pb-8 space-y-4">
-        {/* Toggle Group for Scan Options */}
-        <ToggleGroup 
-          type="single" 
-          value={scanMode} 
-          onValueChange={(value) => value && setScanMode(value)}
-          className="grid grid-cols-3 gap-2"
-        >
-          <ToggleGroupItem value="scan-food" className="flex flex-col gap-1 h-auto py-3">
-            <Camera size={20} />
-            <span className="text-xs">Scan food</span>
-          </ToggleGroupItem>
-          <ToggleGroupItem value="barcode" className="flex flex-col gap-1 h-auto py-3">
-            <div className="w-5 h-5 border border-current rounded-sm flex items-center justify-center">
-              <div className="w-3 h-2 border-l border-current"></div>
-            </div>
-            <span className="text-xs">Barcode</span>
-          </ToggleGroupItem>
-          <ToggleGroupItem value="food-label" className="flex flex-col gap-1 h-auto py-3">
-            <div className="w-5 h-5 border border-current rounded-sm flex items-center justify-center">
-              <div className="w-3 h-1 bg-current rounded-full"></div>
-            </div>
-            <span className="text-xs">Food label</span>
-          </ToggleGroupItem>
-        </ToggleGroup>
+          <video className={`w-full h-full flex items-center justify-center object-cover ${hasPhoto ? "hidden" : "block"}`} ref={videoRef} />
 
-        {/* Shutter and Library Buttons */}
-        <div className="flex items-center justify-center gap-8">
-          <Button variant="outline" size="icon" className="rounded-full">
-            <Image size={20} />
-          </Button>
-          
-          <Button 
-            size="icon" 
-            className="w-16 h-16 rounded-full bg-destructive hover:bg-destructive/90"
-          >
-            <div className="w-12 h-12 rounded-full border-2 border-white"></div>
-          </Button>
+
+          <canvas className={`w-full h-full flex items-center justify-center object-cover ${hasPhoto ? "block" : "hidden"}`} ref={photoRef} />
+
+          {/* Toggle Group for Scan Options - Bottom overlay */}
+          <div className="absolute bottom-25 left-1/2 transform -translate-x-1/2 flex items-center gap-4">
+            <ToggleGroup
+              type="single"
+              value={scanMode}
+              onValueChange={(value) => value && setScanMode(value)}
+              className="flex gap-2"
+            >
+              <ToggleGroupItem
+                value="scan-food"
+                className="inline-flex flex-col h-16 items-center gap-1 px-2 py-1 bg-card hover:bg-accent data-[state=on]:bg-primary text-card-foreground rounded"
+              >
+                <Camera size={20} />
+                <span className="text-sm font-medium">scan food</span>
+              </ToggleGroupItem>
+              <ToggleGroupItem
+                value="barcode"
+                className="inline-flex flex-col h-16 items-center gap-1 px-2 py-1 bg-card hover:bg-accent data-[state=on]:bg-primary text-card-foreground rounded"
+              >
+                <div className="w-5 h-5 border-2 border-current rounded-sm flex items-center justify-center">
+                  <div className="w-2 h-3 border-l-2 border-current"></div>
+                </div>
+                <span className="text-sm font-medium">Barcode</span>
+              </ToggleGroupItem>
+              <ToggleGroupItem
+                value="food-label"
+                className="inline-flex flex-col h-16 items-center gap-1 px-2 py-1 bg-card hover:bg-accent data-[state=on]:bg-primary text-card-foreground rounded"
+              >
+                <div className="w-5 h-5 border-2 border-current rounded-sm flex items-center justify-center">
+                  <div className="w-3 h-1 bg-current rounded-full"></div>
+                </div>
+                <span className="text-sm font-medium">Food Label</span>
+              </ToggleGroupItem>
+            </ToggleGroup>
+          </div>
+
+          {/* Red Shutter Button - Bottom Center */}
+          <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2">
+            <Button
+              size="icon"
+              className="w-16 h-16 rounded-full bg-red-600 hover:bg-red-900 border-4 border-white shadow-lg"
+              onClick={takePhoto}
+            >
+              <div className="w-12 h-12 rounded-full bg-red-600"></div>
+            </Button>
+          </div>
+          {/* Gray Upload Button - Bottom Right */}
+
+          <div className="absolute bottom-6 right-4 z-50">
+            <Button
+              size="icon"
+              className="w-12 h-12 rounded-lg bg-card hover:bg-accent shadow-lg"
+            >
+              <Upload className="w-6 h-6 text-white" />
+            </Button>
+          </div>
         </div>
       </div>
     </div>
