@@ -32,21 +32,21 @@ export const CalorieCard = ({ consumed, total, remaining, data }: CalorieCardPro
             name: "Protein",
             value: data.protein,
             goal: data.proteinGoal || 50,
-            color: "hsl(280, 83%, 66%)",
+            color: "stroke-primary",
             unit: "g"
         },
         {
             name: "Carbs",
             value: data.carbs,
             goal: data.carbsGoal || 150,
-            color: "hsl(200, 98%, 58%)",
+            color: "stroke-chart-2",
             unit: "g"
         },
         {
             name: "Fat",
             value: data.fat,
             goal: data.fatGoal || 65,
-            color: "hsl(38, 90%, 58%)",
+            color: "stroke-chart-3",
             unit: "g"
         }
     ];

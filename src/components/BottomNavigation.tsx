@@ -1,4 +1,4 @@
-import { Home, Search, BarChart3, User } from "lucide-react";
+import { Home, BarChart3, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLocation, NavLink } from "react-router";
 import { useEffect, useState } from "react";

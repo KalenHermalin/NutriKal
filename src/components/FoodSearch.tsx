@@ -2,13 +2,14 @@ import { PopularFoods } from "./search/PopularFoods";
 import { SearchInput } from "./search/SearchInput";
 import { FoodSearchResults } from "./search/FoodSearchResults";
 import { useState } from "react";
+import { searchFoods } from "@/hooks/useApi";
 
 
 
 
 export const FoodSearch = () => {
     const [searchQuery, setSearchQuery] = useState("");
-
+    const {data, error, isLoading} = searchFoods(searchQuery);
     const popularFoods = [
         "Chicken Breast",
         "Rice",
@@ -20,40 +21,13 @@ export const FoodSearch = () => {
         "Broccoli"
     ];
 
-    const searchResults = [
-        {
-            id: "1",
-            name: "Chicken Breast",
-            amount: "100 g",
-            calories: 195,
-            brand: ""
-        },
-        {
-            id: "2",
-            name: "Skinless Chicken Breast",
-            amount: "100 g",
-            calories: 110,
-            brand: ""
-        },
-        {
-            id: "3",
-            name: "Boneless Skinless Chicken Breasts",
-            amount: "4 oz",
-            calories: 110,
-            brand: "Tyson Foods"
-        },
-        {
-            id: "4",
-            name: "Chicken Breast",
-            amount: "4 oz",
-            calories: 110,
-            brand: "Kirkland Signature"
-        }
-    ];
+   
 
 
-    const handleSearchFood = (food: string) => {
+    const handleSearchFood = async (food: string) => {
         setSearchQuery(food);
+       
+
     };
 
     const handleClearSearch = () => {
@@ -74,10 +48,9 @@ export const FoodSearch = () => {
                 />
             </div>
             <div className="mt-2">
-            {searchQuery ? (
+            {searchQuery && data?.success && data.foods.length > 0 ? (
                 <FoodSearchResults
-                    results={searchResults}
-                    onAddFood={handleAddFood}
+                    results={data.foods}
                 />
             ) : (
                 <PopularFoods

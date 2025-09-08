@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Camera, Image, Upload } from "lucide-react";
+import { Camera, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
@@ -9,9 +9,25 @@ const Scanner = () => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const photoRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream>(null);
+  const fileInputRef = useRef(null);
+
+  // Function to handle file selection (optional, for processing selected files)
+  interface FileChangeEvent extends React.ChangeEvent<HTMLInputElement> {}
+
+  interface SelectedFiles {
+    length: number;
+    [index: number]: File;
+  }
+
+  const handleFileChange = (event: FileChangeEvent) => {
+    const selectedFiles: SelectedFiles = event.target.files as SelectedFiles;
+    if (selectedFiles.length > 0) {
+      console.log('Selected files:', selectedFiles);
+      // You can process the selected files here (e.g., upload them, display their names)
+    }
+  };
 
   const stopVideo = () => {
-    let video = videoRef.current;
     if (streamRef.current) {
       let stream = streamRef.current;
       let tracks = stream.getTracks();
@@ -125,9 +141,20 @@ const Scanner = () => {
           {/* Gray Upload Button - Bottom Right */}
 
           <div className="absolute bottom-6 right-4 z-50">
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileChange}
+              accept="image/*"
+              className="hidden" // Hide the input visually
+            />
             <Button
               size="icon"
               className="w-12 h-12 rounded-lg bg-card hover:bg-accent shadow-lg"
+              onClick={() => {
+                //@ts-ignore
+                fileInputRef.current.click();
+              }}
             >
               <Upload className="w-6 h-6 text-white" />
             </Button>

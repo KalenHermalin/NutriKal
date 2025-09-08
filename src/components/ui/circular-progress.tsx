@@ -5,6 +5,7 @@ interface CircularProgressProps {
     max: number;
     size?: number;
     strokeWidth?: number;
+    strokeLineCap?: "round" | "butt" | "square" | "inherit";
     color: string;
     children?: React.ReactNode;
     className?: string;
@@ -15,6 +16,7 @@ export const CircularProgress = ({
     max,
     size = 80,
     strokeWidth = 6,
+    strokeLineCap,
     color,
     children,
     className
@@ -24,7 +26,6 @@ export const CircularProgress = ({
     const circumference = radius * 2 * Math.PI;
     const strokeDasharray = circumference;
     const strokeDashoffset = circumference - (percentage / 100) * circumference;
-
     return (
         <div className={cn("relative inline-flex items-center justify-center", className)}>
             <svg
@@ -47,12 +48,11 @@ export const CircularProgress = ({
                     cy={size / 2}
                     r={radius}
                     fill="transparent"
-                    stroke={color}
                     strokeWidth={strokeWidth}
                     strokeDasharray={strokeDasharray}
                     strokeDashoffset={strokeDashoffset}
-                    strokeLinecap="round"
-                    className="transition-all duration-300 ease-in-out"
+                    strokeLinecap={strokeLineCap || "round"}
+                    className={cn(`transition-all duration-300 ease-in-out`, color)}
                 />
             </svg>
             {children && (

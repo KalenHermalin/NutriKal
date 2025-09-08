@@ -1,6 +1,5 @@
 import { Search, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
-
 interface SearchInputProps {
   value: string;
   onChange: (value: string) => void;
