@@ -1,6 +1,6 @@
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Food } from "@/hooks/useApi";
+import { Food } from "@/lib/types";
 import { useNavigate } from "react-router";
 
 interface FoodItem {

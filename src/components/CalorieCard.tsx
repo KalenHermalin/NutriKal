@@ -65,6 +65,7 @@ export const CalorieCard = ({ consumed, total, remaining, data }: CalorieCardPro
                                 value={macro.value}
                                 max={macro.goal}
                                 color={macro.color}
+                                unfilledColor="stroke-muted"
                                 size={100}
                                 strokeWidth={8}                        >
                                 <div className="text-center">

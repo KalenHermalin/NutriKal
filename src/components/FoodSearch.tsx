@@ -34,9 +34,6 @@ export const FoodSearch = () => {
         setSearchQuery("");
     };
 
-    const handleAddFood = (foodId: string) => {
-        console.log("Adding food:", foodId);
-    };
     return (
         <div>
             <div className="mb-2">

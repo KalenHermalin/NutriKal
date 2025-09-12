@@ -10,7 +10,6 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { useLocation, useNavigate } from "react-router";
 import { Food, FoodLog, MealLog } from "../lib/types";
 import { db } from "@/hooks/useIndexDB";
-import { time } from "console";
 
 const AddFood = () => {
   const navigate = useNavigate();
@@ -19,7 +18,7 @@ const AddFood = () => {
   const [timestamp, setTimestamp] = useState(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
   const [isEnergyExpanded, setIsEnergyExpanded] = useState(true);
 
-const location = useLocation();
+  const location = useLocation();
   const food: Food | null = location.state?.food;
 
   const handleQuantityChange = (value: string) => {
@@ -62,7 +61,7 @@ const location = useLocation();
       totalProtein: foodLog.totalProtein
     }
     const id = await db.mealLogs.add(mealLog);
-    
+
     navigate(-1); // Go back to previous page
   };
 
@@ -132,7 +131,7 @@ const location = useLocation();
             >
               <Minus className="h-4 w-4" />
             </Button>
-            
+
             <Input
               type="number"
               value={quantity}
@@ -141,7 +140,7 @@ const location = useLocation();
               step="0.25"
               min="0"
             />
-            
+
             <Button
               variant="outline"
               size="icon"
@@ -172,14 +171,13 @@ const location = useLocation();
             <CollapsibleTrigger asChild>
               <div className="flex items-center justify-between p-4 cursor-pointer hover:bg-muted/50">
                 <h3 className="text-lg font-semibold text-foreground">Energy Summary</h3>
-                <ChevronUp 
-                  className={`h-5 w-5 text-muted-foreground transition-transform ${
-                    isEnergyExpanded ? '' : 'rotate-180'
-                  }`} 
+                <ChevronUp
+                  className={`h-5 w-5 text-muted-foreground transition-transform ${isEnergyExpanded ? '' : 'rotate-180'
+                    }`}
                 />
               </div>
             </CollapsibleTrigger>
-            
+
             <CollapsibleContent>
               <div className="p-6 pt-0">
                 <div className="flex items-center justify-between">
@@ -188,7 +186,7 @@ const location = useLocation();
                     <div className="relative w-32 h-32">
                       {/* Base circle */}
                       <div className="absolute inset-0 rounded-full bg-muted"></div>
-                      
+
                       {/* Protein segment */}
                       <CircularProgress
                         value={proteinPercent}
@@ -196,12 +194,13 @@ const location = useLocation();
                         size={128}
                         strokeWidth={12}
                         strokeLineCap="square"
+                        unfilledColor="transparent"
                         color="stroke-primary"
                         className="absolute inset-0"
                       />
-                      
+
                       {/* Fat segment - offset by protein percentage */}
-                      <div 
+                      <div
                         className="absolute inset-0"
                         style={{
                           transform: `rotate(${(proteinPercent / 100) * 360}deg)`
@@ -212,12 +211,14 @@ const location = useLocation();
                           max={100}
                           size={128}
                           strokeWidth={12}
+                          unfilledColor="transparent"
+
                           strokeLineCap="square"
                           color="stroke-chart-3"
                         />
                       </div>
                       {/* Carbs segment - offset by protein percentage */}
-                      <div 
+                      <div
                         className="absolute inset-0"
                         style={{
                           transform: `rotate(${((fatPercent + proteinPercent) / 100) * 360}deg)`
@@ -228,11 +229,12 @@ const location = useLocation();
                           max={100}
                           size={128}
                           strokeWidth={12}
+                          unfilledColor="transparent"
                           strokeLineCap="square"
                           color="stroke-chart-2"
                         />
                       </div>
-                      
+
                       {/* Center text */}
                       <div className="absolute inset-0 flex flex-col items-center justify-center">
                         <div className="text-2xl font-bold text-foreground">{calculatedCalories}</div>
@@ -249,14 +251,14 @@ const location = useLocation();
                         Protein ({Math.round(proteinPercent)}%) - {calculatedProtein.toFixed(1)}g
                       </span>
                     </div>
-                    
+
                     <div className="flex items-center gap-2">
                       <div className="w-3 h-3 rounded-full bg-blue-500"></div>
                       <span className="text-sm font-medium text-blue-400">
                         Net Carbs ({Math.round(carbsPercent)}%) - {calculatedCarbs.toFixed(1)}g
                       </span>
                     </div>
-                    
+
                     <div className="flex items-center gap-2">
                       <div className="w-3 h-3 rounded-full bg-orange-500"></div>
                       <span className="text-sm font-medium text-orange-400">

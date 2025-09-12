@@ -7,6 +7,7 @@ interface CircularProgressProps {
     strokeWidth?: number;
     strokeLineCap?: "round" | "butt" | "square" | "inherit";
     color: string;
+    unfilledColor?: string;
     children?: React.ReactNode;
     className?: string;
 }
@@ -18,6 +19,7 @@ export const CircularProgress = ({
     strokeWidth = 6,
     strokeLineCap,
     color,
+    unfilledColor,
     children,
     className
 }: CircularProgressProps) => {
@@ -39,7 +41,7 @@ export const CircularProgress = ({
                     cy={size / 2}
                     r={radius}
                     fill="transparent"
-                    stroke="hsl(var(--muted))"
+                    className={cn(``, unfilledColor ? unfilledColor : "stroke-muted")}
                     strokeWidth={strokeWidth}
                 />
                 {/* Progress circle */}
@@ -47,7 +49,7 @@ export const CircularProgress = ({
                     cx={size / 2}
                     cy={size / 2}
                     r={radius}
-                    fill="transparent"
+                    fill="transparent"  
                     strokeWidth={strokeWidth}
                     strokeDasharray={strokeDasharray}
                     strokeDashoffset={strokeDashoffset}

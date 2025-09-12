@@ -1,22 +1,65 @@
-import { useContext, useState } from "react";
+import {useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { Moon, Scale, Target, Save } from "lucide-react";
+import { Moon, Scale, Target } from "lucide-react";
 import { BottomNavigation } from "@/components/BottomNavigation";
 import { useTheme } from "@/contexts/ThemeContext";
+import { db } from "@/hooks/useIndexDB";
+import { useLiveQuery } from "dexie-react-hooks";
 export default function Profile() {
-  const [units, setUnits] = useState("metric");
+  const [units, setUnits] = useState<"metric" | "imperial">("metric");
   const [calories, setCalories] = useState("2000");
   const [protein, setProtein] = useState("150");
   const [carbs, setCarbs] = useState("300");
   const [fat, setFat] = useState("70");
+
   //@ts-ignore. For some reason useTheme() throws an error even though it works perfectly fine
   const { theme, setTheme } = useTheme();
+  const settings = useLiveQuery(() => db.settings.toArray().then(res => res[res.length - 1]))
+  useEffect(() => {
+    if (settings) {
+      setCalories(settings.dailyCalorieGoal.toString());
+      setProtein(settings.dailyProteinGoal.toString());
+      setCarbs(settings.dailyCarbGoal.toString());
+      setFat(settings.dailyFatGoal.toString());
+      setTheme(settings.theme);
+      setUnits(settings.units);
+    }
+  }, [settings])
 
+  useEffect(() => {
+    // Needed to correctly save the theme when changed
+    const saveTheme = async () => {
+      if (settings) {
+        await db.settings.update(settings.id || 0, { theme: theme });
+      }
+    };
+    saveTheme();
+  }, [theme]);
+
+  const saveSettingsLocally = async () => {
+    const update = await db.settings.update(settings?.id || 0, {
+      dailyCalorieGoal: parseInt(calories),
+      dailyProteinGoal: parseInt(protein),
+      dailyCarbGoal: parseInt(carbs),
+      dailyFatGoal: parseInt(fat),
+      theme: theme,
+      units: units
+    })
+    if (update === 0) {
+      db.settings.add({
+        dailyCalorieGoal: parseInt(calories),
+        dailyProteinGoal: parseInt(protein),
+        dailyCarbGoal: parseInt(carbs),
+        dailyFatGoal: parseInt(fat),
+        theme: theme,
+        units: units
+      })
+    }
+  }
   return (
     <div className="min-h-screen bg-background text-foreground pb-20">
       <div className="p-6 space-y-6">
@@ -50,10 +93,13 @@ export default function Profile() {
                   </p>
                 </div>
               </div>
-              <ToggleGroup 
-                type="single" 
-                value={theme} 
-                onValueChange={setTheme}
+              <ToggleGroup
+                type="single"
+                value={theme}
+                onValueChange={(_theme) => {
+                  setTheme(_theme);
+                  saveSettingsLocally();
+                }}
                 className="bg-muted rounded-lg "
               >
                 <ToggleGroupItem value="system" className="text-xs px-3 data-[state=on]:bg-primary">
@@ -79,7 +125,9 @@ export default function Profile() {
                   </p>
                 </div>
               </div>
-              <Select value={units} onValueChange={setUnits}>
+              <Select value={units} onValueChange={(unit) => {
+                setUnits(unit as "metric" | "imperial");
+              }}>
                 <SelectTrigger className="w-24 bg-muted border-0">
                   <SelectValue />
                 </SelectTrigger>
@@ -108,8 +156,15 @@ export default function Profile() {
               </Label>
               <Input
                 id="calories"
+                type="number"
                 value={calories}
                 onChange={(e) => setCalories(e.target.value)}
+                onBlur={() => { 
+                  if(calories || !isNaN(Number(calories)) && Number(calories) > 0) {
+                    saveSettingsLocally();
+                  }
+                  setCalories(settings?.dailyCalorieGoal.toString() || "2000");
+                 }}
                 className="mt-2 bg-muted border-0 text-lg font-medium"
               />
             </div>
@@ -121,8 +176,15 @@ export default function Profile() {
               </Label>
               <Input
                 id="protein"
+                type="number"
                 value={protein}
                 onChange={(e) => setProtein(e.target.value)}
+                onBlur={() => { 
+                  if(protein || !isNaN(Number(protein)) && Number(protein) > 0) {
+                    saveSettingsLocally();
+                  }
+                  setProtein(settings?.dailyProteinGoal.toString() || "150");
+                 }}
                 className="mt-2 bg-muted border-0 text-lg font-medium"
               />
             </div>
@@ -134,8 +196,15 @@ export default function Profile() {
               </Label>
               <Input
                 id="carbs"
+                type="number"
                 value={carbs}
                 onChange={(e) => setCarbs(e.target.value)}
+                onBlur={() => { 
+                  if(carbs || !isNaN(Number(carbs)) && Number(carbs) > 0) {
+                    saveSettingsLocally();
+                  }
+                  setCarbs(settings?.dailyCarbGoal.toString() || "300");
+                }}
                 className="mt-2 bg-muted border-0 text-lg font-medium"
               />
             </div>
@@ -147,17 +216,24 @@ export default function Profile() {
               </Label>
               <Input
                 id="fat"
+                type="number"
                 value={fat}
                 onChange={(e) => setFat(e.target.value)}
+                onBlur={() => { 
+                  if(fat || !isNaN(Number(fat)) && Number(fat) > 0) {
+                    saveSettingsLocally();
+                  }
+                  setFat(settings?.dailyFatGoal.toString() || "70");
+                }}
                 className="mt-2 bg-muted border-0 text-lg font-medium"
               />
             </div>
 
             {/* Save Button */}
-            <Button className="w-full mt-6 bg-primary text-primary-foreground">
+            {/*<Button className="w-full mt-6 bg-primary text-primary-foreground">
               <Save className="w-4 h-4 mr-2" />
               Save Settings
-            </Button>
+            </Button>*/}
           </CardContent>
         </Card>
 
@@ -169,8 +245,8 @@ export default function Profile() {
           <CardContent>
             <p className="text-sm text-muted-foreground mb-2">Version 0.0.1</p>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              NutriKal helps you monitor your nutrition with ease. Track your meals, 
-              scan barcodes, analyze photos, and maintain a healthy lifestyle with 
+              NutriKal helps you monitor your nutrition with ease. Track your meals,
+              scan barcodes, analyze photos, and maintain a healthy lifestyle with
               comprehensive food logging and progress tracking.
               Powered by: Fat Secret API
             </p>

@@ -44,7 +44,15 @@ export interface LogEntry {
     meal: MealLog;
     
 }
-
+export interface Settings {
+    id?: number;
+    dailyCalorieGoal: number;
+    dailyProteinGoal: number;
+    dailyCarbGoal: number;
+    dailyFatGoal: number;
+    theme: "light" | "dark" | "system";
+    units: "metric" | "imperial";
+}
 export interface MealLog {
     id?: number;
     date: string;

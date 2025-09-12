@@ -1,12 +1,13 @@
 import { CalorieCard } from "@/components/CalorieCard";
 import { FoodLogCard } from "@/components/FoodLogCard";
-import { db } from "@/hooks/useIndexDB";
 import { MealLog } from "@/lib/types";
 import { useEffect } from "react";
 import {useLiveQuery} from 'dexie-react-hooks'
-
+import { db } from "@/hooks/useIndexDB";
 export const HomePage = () => {
 const mealLogs = useLiveQuery(() => db.mealLogs.toArray())
+
+const settings = useLiveQuery(() => db.settings.toArray().then(res => res[res.length - 1]))
 const today = new Date();
 today.setHours(0,0,0,0);
 const getTodaysLogs = () => {
@@ -43,16 +44,16 @@ const consumedMacros = () => {
 const macros = consumedMacros()
   const calorieData = {
     consumed: macros.totalCalories,
-    total: 2000,
-    remaining: 2000 - macros.totalCalories
+    total: settings?.dailyCalorieGoal || 2000,
+    remaining: (settings?.dailyCalorieGoal || 2000) - macros.totalCalories
   };
   const macroData = {
     protein: macros.totalProtein,
     carbs: macros.totalCarbs,
     fat: macros.totalFat,
-    proteinGoal: 150,
-    carbsGoal: 250,
-    fatGoal: 67
+    proteinGoal: settings?.dailyProteinGoal || 150,
+    carbsGoal: settings?.dailyCarbGoal || 250,
+    fatGoal: settings?.dailyFatGoal || 67
   };
  
 

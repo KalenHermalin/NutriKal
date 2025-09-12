@@ -2,17 +2,47 @@ import { useEffect, useRef, useState } from "react";
 import { Camera, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { BarcodeDetectorPolyfill } from '@undecaf/barcode-detector-polyfill'
+import { analyzePhoto, scanBarcode } from "@/hooks/useApi";
+import { useNavigate } from "react-router";
 
 const Scanner = () => {
   const [scanMode, setScanMode] = useState("scan-food");
   const [hasPhoto, setHasPhoto] = useState(false);
+  const [scanedBarcode, setScanedBarcode] = useState<string>('')
+  const [base64Pic, setBase64Pic] = useState<string>('')
   const videoRef = useRef<HTMLVideoElement>(null);
   const photoRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream>(null);
   const fileInputRef = useRef(null);
+  const navigate = useNavigate()
+
+  const { data: barcodeData } = scanBarcode(scanedBarcode)
+  const { data: photoData} = analyzePhoto(base64Pic)
+
+  
+useEffect(() => {
+  if (photoData && photoData !== undefined && photoData !== null) {
+    navigate("/add-meal", {state: {
+      meal: {
+        name: photoData.meal_name,
+        foods: photoData.ingredients
+      }
+    }})
+  }
+}, [photoData])
+
+  try {
+    //@ts-ignore
+    window['BarcodeDetector'].getSupportedFormats()
+  } catch {
+    //@ts-ignore
+    window['BarcodeDetector'] = BarcodeDetectorPolyfill
+  }
+
 
   // Function to handle file selection (optional, for processing selected files)
-  interface FileChangeEvent extends React.ChangeEvent<HTMLInputElement> {}
+  interface FileChangeEvent extends React.ChangeEvent<HTMLInputElement> { }
 
   interface SelectedFiles {
     length: number;
@@ -34,14 +64,19 @@ const Scanner = () => {
       tracks.forEach(track =>
         track.stop()
       );
-
+      streamRef.current = null;
+      if (videoRef.current) {
+        videoRef.current.srcObject = null;
+      }
     }
   }
   const getVideo = () => {
+    stopVideo();
     navigator.mediaDevices.getUserMedia({
       video: { width: 1080, height: 1920, facingMode: "environment" }, audio: false
     }).then(stream => {
       let video = videoRef.current;
+      if (!video) return;
       //@ts-ignore
       video.srcObject = stream;
       streamRef.current = stream;
@@ -51,6 +86,45 @@ const Scanner = () => {
         console.error("error:", err);
       });
   }
+
+  const ScanBarcode = async () => {
+    try {
+      console.log("detecting")
+      //@ts-ignore
+      const detector: BarcodeDetectorPolyfill = new BarcodeDetector({ formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e'] })
+      const barcodes = await detector.detect(photoRef.current)
+      if (barcodes.length > 0) {
+        const barcode = barcodes[0];
+        if (barcode.format === 'upc_a') {
+          barcode.rawValue = `0${barcode.rawValue}`;
+        }
+        if (barcode.format === 'ean_8') {
+          barcode.rawValue = `00000${barcode.rawValue}`;
+        }
+        setScanedBarcode(barcode.rawValue)
+      } else {
+        console.log("no barcodes found")
+        setHasPhoto(false);
+        videoRef.current?.play()
+      }
+    } catch (error) {
+      console.log(error)
+    }
+    
+
+  }
+
+  const scanFood = () => {
+      console.log("scanning")
+      let photo = photoRef.current;
+      const b64Pic = photo?.toDataURL('image/jpeg').split(',')[1]
+      if (!b64Pic) {
+        alert("Couldn't get image data");
+        setHasPhoto(false);
+        videoRef.current?.play()
+      }
+      setBase64Pic(b64Pic!)
+    }
   const takePhoto = () => {
     let video = videoRef.current;
     let photo = photoRef.current;
@@ -59,7 +133,9 @@ const Scanner = () => {
     photo.height = video.videoHeight;
     let ctx = photo.getContext("2d");
     ctx?.drawImage(video, 0, 0);
-    setHasPhoto(true);
+    if (scanMode === "barcode") ScanBarcode();
+    else if (scanMode === "scan-food") scanFood();
+      setHasPhoto(true);
     video.pause();
   }
   useEffect(() => {
@@ -89,7 +165,7 @@ const Scanner = () => {
 
           <video className={`w-full h-full flex items-center justify-center object-cover ${hasPhoto ? "hidden" : "block"}`} ref={videoRef} />
 
-
+          
           <canvas className={`w-full h-full flex items-center justify-center object-cover ${hasPhoto ? "block" : "hidden"}`} ref={photoRef} />
 
           {/* Toggle Group for Scan Options - Bottom overlay */}
