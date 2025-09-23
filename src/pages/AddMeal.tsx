@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ArrowLeft, ChevronUp, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -82,6 +82,7 @@ const updateFoodAmount = (foodId: string, newAmount: number) => {
       return food;
     }));
   };
+  useEffect(() => console.log(foods), [foods])
 
   const removeFoodItem = (foodId: string) => {
     setFoods(prev => prev.filter(food => food.food_id.toString() !== foodId));
@@ -249,7 +250,6 @@ const updateFoodAmount = (foodId: string, newAmount: number) => {
           {foods.map((food) => (
             <Collapsible 
               key={food.food_id}
-              open={expandedFoods[food.food_id]}
               onOpenChange={() => toggleFoodExpanded(food.food_id.toString())}
             >
               <Card className="bg-card border-border overflow-hidden">

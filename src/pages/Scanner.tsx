@@ -167,10 +167,9 @@ useEffect(() => {
       {/* Camera Feed - Full available space */}
       <div className="flex-1 px-4 w-full flex justify-center overflow-hidden pb-24">
         <div className="relative w-full max-w-[375px] rounded-3xl overflow-hidden">
-          {/* Camera feed placeholder */}
           {/* VIDEO FEED */}
 
-          <video className={`w-full h-full flex items-center justify-center object-cover ${hasPhoto ? "hidden" : "block"}`} ref={videoRef} />
+          <video className={`w-full h-full flex items-center justify-center object-cover ${hasPhoto ? "hidden" : "block"}`} playsInline muted ref={videoRef} />
 
           
           <canvas className={`w-full h-full flex items-center justify-center object-cover ${hasPhoto ? "block" : "hidden"}`} ref={photoRef} />
