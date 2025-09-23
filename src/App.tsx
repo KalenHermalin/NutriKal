@@ -7,18 +7,20 @@ import Profile from './pages/Profile.tsx';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import AddFood from './pages/AddFood.tsx';
 import { HomePage } from './pages/HomePage.tsx';
+import AddMeal from './pages/AddMeal.tsx';
 
 function App() {
   const queryClient = new QueryClient();
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-        <Routes>
+        <Routes >
           <Route element={<Layout />}>
             <Route index element={<HomePage />} />
             <Route path="analyze" element={<Scanner />} />
             <Route path="profile" element={<Profile />} />
             <Route path="add-food" element={<AddFood />} />
+            <Route path="add-meal" element={<AddMeal />} />
             <Route path="*" element={<div>404 Not Found</div>} />
           </Route>
         </Routes>

@@ -53,6 +53,13 @@ useEffect(() => {
     const selectedFiles: SelectedFiles = event.target.files as SelectedFiles;
     if (selectedFiles.length > 0) {
       console.log('Selected files:', selectedFiles);
+      selectedFiles[0].arrayBuffer().then(buffer => {
+        const base64String = btoa(
+          new Uint8Array(buffer).reduce((data, byte) => data + String.fromCharCode(byte), '')
+        );
+        setBase64Pic(base64String)
+        setHasPhoto(true);
+      });
       // You can process the selected files here (e.g., upload them, display their names)
     }
   };

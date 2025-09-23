@@ -1,7 +1,7 @@
 import { PopularFoods } from "./search/PopularFoods";
 import { SearchInput } from "./search/SearchInput";
 import { FoodSearchResults } from "./search/FoodSearchResults";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { searchFoods } from "@/hooks/useApi";
 
 
@@ -21,7 +21,6 @@ export const FoodSearch = () => {
         "Broccoli"
     ];
 
-   
 
 
     const handleSearchFood = async (food: string) => {
@@ -45,9 +44,9 @@ export const FoodSearch = () => {
                 />
             </div>
             <div className="mt-2">
-            {searchQuery && data?.success && data.foods.length > 0 ? (
+            {searchQuery && data ? (
                 <FoodSearchResults
-                    results={data.foods}
+                    results={data}
                 />
             ) : (
                 <PopularFoods

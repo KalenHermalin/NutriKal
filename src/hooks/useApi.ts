@@ -4,12 +4,9 @@ import { useQuery } from '@tanstack/react-query';
 
 const API_URL = 'https://octopus-app-8lwy6.ondigitalocean.app/'
 
-interface FoodSearchServerResponse {
-  success: boolean;
-  foods: Food[];
-}
+
 export const searchFoods = (query: string, page: number = 0) => {
-    const search = async (): Promise<FoodSearchServerResponse> => {
+    const search = async (): Promise<Food[]> => {
         if (query.length === 0) throw new Error("Query cannot be empty");
         const response = await fetch(API_URL+`api/search?q=${query}&page=${page}`);
         return response.json();
@@ -54,7 +51,8 @@ export const analyzePhoto = (base64: string) => {
           'Content-Type': 'application/json',
         }
       });
-      const json: { meal_name: string; ingredients: Food[]; } = await response.json();
+      const json = await response.json();
+      console.log(json)
       return json
 
  }

@@ -17,6 +17,7 @@ interface FoodSearchResultsProps {
 
 export const FoodSearchResults = ({ results }: FoodSearchResultsProps) => {
   const navigate = useNavigate();
+
   const onAddFood = (foodId: string) => {
     const food = results.find((item) => item.food_id === Number(foodId));
     navigate("/add-food", { state: { food } });
