@@ -60,7 +60,7 @@ const AddFood = () => {
       totalFat: foodLog.totalFat,
       totalProtein: foodLog.totalProtein
     }
-    const id = await db.mealLogs.add(mealLog);
+    await db.mealLogs.add(mealLog);
 
     navigate(-1); // Go back to previous page
   };

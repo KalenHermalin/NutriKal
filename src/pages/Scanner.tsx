@@ -17,7 +17,7 @@ const Scanner = () => {
   const fileInputRef = useRef(null);
   const navigate = useNavigate()
 
-  const { data: barcodeData } = scanBarcode(scanedBarcode)
+  const { data: _barcodeData } = scanBarcode(scanedBarcode)
   const { data: photoData} = analyzePhoto(base64Pic)
 
   

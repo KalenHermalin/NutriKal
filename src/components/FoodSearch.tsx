@@ -1,7 +1,7 @@
 import { PopularFoods } from "./search/PopularFoods";
 import { SearchInput } from "./search/SearchInput";
 import { FoodSearchResults } from "./search/FoodSearchResults";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { searchFoods } from "@/hooks/useApi";
 
 
@@ -9,7 +9,7 @@ import { searchFoods } from "@/hooks/useApi";
 
 export const FoodSearch = () => {
     const [searchQuery, setSearchQuery] = useState("");
-    const {data, error, isLoading} = searchFoods(searchQuery);
+    const {data} = searchFoods(searchQuery);
     const popularFoods = [
         "Chicken Breast",
         "Rice",

@@ -3,16 +3,7 @@ import { MealLog } from "@/lib/types";
 import { Clock, X } from "lucide-react";
 import { db } from "@/hooks/useIndexDB";
 
-interface FoodEntry {
-  id: string;
-  time: string;
-  name: string;
-  amount: string;
-  calories: number;
-  protein: number;
-  carbs: number;
-  fat: number;
-}
+
 
 interface FoodLogCardProps {
   entries: (MealLog | undefined)[] | undefined;
