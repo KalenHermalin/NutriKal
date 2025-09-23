@@ -3,13 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Food } from "@/lib/types";
 import { useNavigate } from "react-router";
 
-interface FoodItem {
-  id: string;
-  name: string;
-  amount: string;
-  calories: number;
-  brand?: string;
-}
+
 
 interface FoodSearchResultsProps {
   results: Food[];
