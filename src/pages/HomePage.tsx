@@ -1,7 +1,5 @@
 import { CalorieCard } from "@/components/CalorieCard";
 import { FoodLogCard } from "@/components/FoodLogCard";
-import { MealLog } from "@/lib/types";
-import { useEffect } from "react";
 import {useLiveQuery} from 'dexie-react-hooks'
 import { db } from "@/hooks/useIndexDB";
 export const HomePage = () => {

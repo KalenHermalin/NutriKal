@@ -1,5 +1,3 @@
-import { CalorieCard } from './components/CalorieCard.tsx'
-import { FoodLogCard } from './components/FoodLogCard.tsx'
 import { BottomNavigation } from './components/BottomNavigation.tsx'
 import { BrowserRouter, Routes, Route, Outlet } from 'react-router'
 import Scanner from './pages/Scanner.tsx';

@@ -88,7 +88,6 @@ const updateFoodAmount = (foodId: string, newAmount: number) => {
   };
 
   // Calculate totals from current foods state
-  const totalGrams = foods.reduce((sum, food) => sum + Number(food.quantity), 0);
   const totalCalories = foods.reduce((sum, food) => sum + Number(food.servings[0].calories), 0);
   const totalProtein = foods.reduce((sum, food) => sum + Number(food.servings[0].protein), 0);
   const totalCarbs = foods.reduce((sum, food) => sum + Number(food.servings[0].carbohydrate), 0);

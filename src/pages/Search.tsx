@@ -1,7 +1,4 @@
 import { useState } from "react";
-import { SearchInput } from "@/components/search/SearchInput";
-import { PopularFoods } from "@/components/search/PopularFoods";
-import { FoodSearchResults } from "@/components/search/FoodSearchResults";
 import { FoodSearch } from "@/components/FoodSearch";
 
 const Search = () => {
