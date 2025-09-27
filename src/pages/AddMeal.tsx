@@ -23,9 +23,13 @@ const AddMeal = () => {
 
   const [isEnergyExpanded, setIsEnergyExpanded] = useState(true);
   const [expandedFoods, setExpandedFoods] = useState<Record<string, boolean>>({});
-  const meal: MealData = location.state?.foods;
-  const [mealName, setMealName] = useState(meal?.name  || "breakfast");
-  const [foods, setFoods] = useState(meal?.foods || _foods)
+  const meal: MealData = location.state?.meal;
+  const [mealName, setMealName] = useState(meal?.name);
+
+  const [foods, setFoods] = useState(meal.foods.map((val) => {
+    val.selectedServing = 0
+    return val
+  }))
 
   const handleAddMeal = async  () => {
     
@@ -34,11 +38,11 @@ const AddMeal = () => {
       foodLog = {
         food,
         selectedServing: 0,
-        totalCalories: Math.round(Number(food.servings[0].calories) * Number(food.quantity)),
-        totalFat: Math.round(Number(food.servings[0].fat) * Number(food.quantity)),
-        totalCarbs: Math.round(Number(food.servings[0].carbohydrate) * Number(food.quantity)),
-        totalProtein: Math.round(Number(food.servings[0].protein) * Number(food.quantity)),
-        
+        totalCalories: Math.round(Number(food.servings[food.selectedServing || 0].calories) * Number(food.quantity)),
+        totalFat: Math.round(Number(food.servings[food.selectedServing || 0].fat) * Number(food.quantity)),
+        totalCarbs: Math.round(Number(food.servings[food.selectedServing || 0].carbohydrate) * Number(food.quantity)),
+        totalProtein: Math.round(Number(food.servings[food.selectedServing || 0].protein) * Number(food.quantity)),
+
       }
       return foodLog
     })
@@ -73,32 +77,47 @@ const updateFoodAmount = (foodId: string, newAmount: number) => {
         return {
           ...food,
           quantity: newAmount.toString(),
-          calories: Math.round(Number(food.servings[0].calories) * ratio),
-          protein: Number((Number(food.servings[0].protein) * ratio).toFixed(1)),
-          carbs: Number((Number(food.servings[0].carbohydrate) * ratio).toFixed(1)),
-          fat: Number((Number(food.servings[0].fat)* ratio).toFixed(1))
+          calories: Math.round(Number(food.servings[food?.selectedServing || 0].calories) * ratio),
+          protein: Number((Number(food.servings[food?.selectedServing || 0].protein) * ratio).toFixed(1)),
+          carbs: Number((Number(food.servings[food?.selectedServing || 0].carbohydrate) * ratio).toFixed(1)),
+          fat: Number((Number(food.servings[food?.selectedServing || 0].fat)* ratio).toFixed(1))
         };
       }
       return food;
     }));
   };
-  useEffect(() => console.log(foods), [foods])
+  const updateFoodSelectedServing = (foodId: string, newServing: number) => {
+    setFoods(prev => prev.map(food => {
+      if (food.food_id.toString() === foodId) {
+        return {
+          ...food,
+          selectedServing: newServing,
+        }
+      }
+      return food;
+    }));
+  };
 
   const removeFoodItem = (foodId: string) => {
     setFoods(prev => prev.filter(food => food.food_id.toString() !== foodId));
   };
 
   // Calculate totals from current foods state
-  const totalCalories = foods.reduce((sum, food) => sum + Number(food.servings[0].calories), 0);
-  const totalProtein = foods.reduce((sum, food) => sum + Number(food.servings[0].protein), 0);
-  const totalCarbs = foods.reduce((sum, food) => sum + Number(food.servings[0].carbohydrate), 0);
-  const totalFat = foods.reduce((sum, food) => sum + Number(food.servings[0].fat), 0);
+  const totalCalories = foods.reduce((sum, food) => sum + Number(food.servings[food?.selectedServing || 0].calories) * Number(food.quantity), 0);
+  const totalProtein = foods.reduce((sum, food) => sum + Number(food.servings[food?.selectedServing || 0].protein) * Number(food.quantity), 0);
+  const totalCarbs = foods.reduce((sum, food) => sum + Number(food.servings[food?.selectedServing || 0].carbohydrate) * Number(food.quantity), 0);
+  const totalFat = foods.reduce((sum, food) => sum + Number(food.servings[food?.selectedServing || 0].fat) * Number(food.quantity), 0);
 
   // Calculate percentages for the circular chart
-  const totalMacroCalories = (totalProtein * 4) + (totalCarbs * 4) + (totalFat * 9);
-  const proteinPercent = totalMacroCalories > 0 ? (totalProtein * 4) / totalMacroCalories * 100 : 0;
-  const carbsPercent = totalMacroCalories > 0 ? (totalCarbs * 4) / totalMacroCalories * 100 : 0;
-  const fatPercent = totalMacroCalories > 0 ? (totalFat * 9) / totalMacroCalories * 100 : 0;
+  const totalMacroCalories = totalProtein * 4 + totalCarbs * 4 + totalFat * 9;
+  const proteinShare = totalMacroCalories > 0 ? (totalProtein * 4) / totalMacroCalories * 100 : 0;
+  const carbsShare = totalMacroCalories > 0 ? (totalCarbs * 4) / totalMacroCalories * 100 : 0;
+  const fatShare = totalMacroCalories > 0 ? (totalFat * 9) / totalMacroCalories * 100 : 0;
+
+  const normalizationFactor = proteinShare + carbsShare + fatShare || 1;
+  const proteinPercent = (proteinShare / normalizationFactor) * 100;
+  const carbsPercent = (carbsShare / normalizationFactor) * 100;
+  const fatPercent = (fatShare / normalizationFactor) * 100;
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -167,18 +186,17 @@ const updateFoodAmount = (foodId: string, newAmount: number) => {
                         strokeLineCap="butt"
                         unfilledColor="transparent"
                         color="stroke-primary"
-                        className="absolute inset-0"
                       />
-                      
-                      {/* Fat segment - offset by protein percentage */}
-                      <div 
+
+                      {/* Carbs segment - offset by protein percentage */}
+                      <div
                         className="absolute inset-0"
                         style={{
                           transform: `rotate(${(proteinPercent / 100) * 360}deg)`
                         }}
                       >
                         <CircularProgress
-                          value={fatPercent}
+                          value={carbsPercent}
                           max={100}
                           size={128}
                           strokeWidth={12}
@@ -188,15 +206,15 @@ const updateFoodAmount = (foodId: string, newAmount: number) => {
                         />
                       </div>
 
-                      {/* Carbs segment - offset by protein percentage */}
-                      <div 
+                      {/* Fat segment - offset by protein and carbs percentages */}
+                      <div
                         className="absolute inset-0"
                         style={{
-                          transform: `rotate(${(carbsPercent / 100) * 360}deg)`
+                          transform: `rotate(${((proteinPercent + carbsPercent) / 100) * 360}deg)`
                         }}
                       >
                         <CircularProgress
-                          value={carbsPercent}
+                          value={fatPercent}
                           max={100}
                           size={128}
                           strokeWidth={12}
@@ -208,7 +226,7 @@ const updateFoodAmount = (foodId: string, newAmount: number) => {
                       
                       {/* Center text */}
                       <div className="absolute inset-0 flex flex-col items-center justify-center ">
-                        <div className="text-2xl font-bold text-foreground">{totalCalories}</div>
+                        <div className="text-2xl font-bold text-foreground">{totalCalories.toFixed(0)}</div>
                         <div className="text-sm text-muted-foreground">kcal</div>
                       </div>
                     </div>
@@ -246,19 +264,20 @@ const updateFoodAmount = (foodId: string, newAmount: number) => {
         {/* Food Items List */}
         <div className="space-y-3">
           <h3 className="text-lg font-semibold text-foreground">Food Items</h3>
-          
-          {foods.map((food) => (
-            <Collapsible 
-              key={food.food_id}
-              onOpenChange={() => toggleFoodExpanded(food.food_id.toString())}
-            >
-              <Card className="bg-card border-border overflow-hidden">
+
+          {foods.map((food) => {
+            return (
+              <Collapsible
+                key={food.food_id}
+                onOpenChange={() => toggleFoodExpanded(food.food_id.toString())}
+              >
+                <Card className="bg-card border-border overflow-hidden">
                 <CollapsibleTrigger asChild>
                   <div className="flex items-center justify-between p-4 cursor-pointer hover:bg-muted/50">
                     <div className="flex-1">
                       <h4 className="font-medium text-foreground">{food.food_name}</h4>
                       <p className="text-sm text-muted-foreground">
-                        {food.quantity}g • {food.servings[0].calories} kcal
+                        {food.quantity} {food.servings[food?.selectedServing || 0].measurement_description} • {(Number(food.servings[food?.selectedServing || 0].calories) * Number(food.quantity)).toFixed(0)} kcal
                         {food.brand_name && ` • ${food.brand_name}`}
                       </p>
                     </div>
@@ -285,6 +304,20 @@ const updateFoodAmount = (foodId: string, newAmount: number) => {
                 
                 <CollapsibleContent>
                   <div className="px-4 pb-4 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-sm font-medium text-foreground">Serving Size</Label>
+                      <select  className="h-8 px-2 text-sm border border-input bg-background rounded-md" onChange={(e) => {
+                          const [selectedIndex, foodId] = e.target.value.split(',');
+                          updateFoodSelectedServing(foodId, Number(selectedIndex));
+                      }}>
+                       {
+                       food.servings.map((serving, index) => {
+                          return (
+                            <option key={index} value={[index.toString(), food.food_id.toString()]}>{serving.measurement_description}</option>
+                          )
+                       })}
+                      </select>
+                    </div>
                     {/* Quantity Editor */}
                     <div className="flex items-center justify-between">
                       <Label className="text-sm font-medium text-foreground">Quantity</Label>
@@ -293,12 +326,20 @@ const updateFoodAmount = (foodId: string, newAmount: number) => {
                           type="number"
                           value={food.quantity}
                           onChange={(e) => {
+                            if (Number(e.target.value) > 999) {
+                              e.target.value = "999";
+                            } 
                             updateFoodAmount(food.food_id.toString(), Number(e.target.value))
+                          }}
+                          onBlur={(e) => {
+                            if (!e.target.value || Number(e.target.value) < 1) {
+                              updateFoodAmount(food.food_id.toString(), 1)
+                            }
                           }}
                           className="w-20 h-8 text-center"
                           min="1"
                         />
-                        <span className="text-sm text-muted-foreground">g</span>
+                        <span className="text-sm text-muted-foreground">{food.servings[food?.selectedServing || 0].measurement_description}</span>
                       </div>
                     </div>
 
@@ -308,22 +349,22 @@ const updateFoodAmount = (foodId: string, newAmount: number) => {
                         <div className="flex items-center gap-4">
                           <div className="flex items-center gap-1">
                             <div className="w-2 h-2 rounded-full bg-primary"></div>
-                            <span className="text-primary font-medium">Protein {Number(food.servings[0].protein).toFixed(1)}g</span>
+                            <span className="text-primary font-medium">Protein {(Number(food.servings[food?.selectedServing || 0].protein)* Number(food.quantity)).toFixed(1)}g</span>
                           </div>
                           <div className="flex items-center gap-1">
                             <div className="w-2 h-2 rounded-full bg-chart-2"></div>
-                            <span className="text-chart-2 font-medium">Carbs {Number(food.servings[0].carbohydrate).toFixed(1)}g</span>
+                            <span className="text-chart-2 font-medium">Carbs {(Number(food.servings[food?.selectedServing || 0].carbohydrate)* Number(food.quantity)).toFixed(1)}g</span>
                           </div>
                           <div className="flex items-center gap-1">
                             <div className="w-2 h-2 rounded-full bg-chart-3"></div>
-                            <span className="text-chart-3 font-medium">Fat {Number(food.servings[0].fat).toFixed(1)}g</span>
+                            <span className="text-chart-3 font-medium">Fat {(Number(food.servings[food?.selectedServing || 0].fat)* Number(food.quantity)).toFixed(1)}g</span>
                           </div>
                         </div>
                       </div>
                       <MacroProgressBar 
-                        protein={Number(food.servings[0].protein)}
-                        carbs={Number(food.servings[0].carbohydrate)}
-                        fat={Number(food.servings[0].protein)}
+                        protein={Number(food.servings[food?.selectedServing || 0].protein)}
+                        carbs={Number(food.servings[food?.selectedServing || 0].carbohydrate)}
+                        fat={Number(food.servings[food?.selectedServing || 0].protein)}
                         className="h-3"
                       />
                     </div>
@@ -331,7 +372,7 @@ const updateFoodAmount = (foodId: string, newAmount: number) => {
                 </CollapsibleContent>
               </Card>
             </Collapsible>
-          ))}
+          );})}
         </div>
       </div>
 

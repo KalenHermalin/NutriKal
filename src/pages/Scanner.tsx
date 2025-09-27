@@ -18,19 +18,9 @@ const Scanner = () => {
   const navigate = useNavigate()
 
   const { data: _barcodeData } = scanBarcode(scanedBarcode)
-  const { data: photoData} = analyzePhoto(base64Pic)
+  const { mutate: analyzePhotoMutate, data: photoData } = analyzePhoto()
 
-  
-useEffect(() => {
-  if (photoData && photoData !== undefined && photoData !== null) {
-    navigate("/add-meal", {state: {
-      meal: {
-        name: photoData.meal_name,
-        foods: photoData.ingredients
-      }
-    }})
-  }
-}, [photoData])
+
 
   try {
     //@ts-ignore
@@ -117,21 +107,21 @@ useEffect(() => {
     } catch (error) {
       console.log(error)
     }
-    
+
 
   }
 
   const scanFood = () => {
-      console.log("scanning")
-      let photo = photoRef.current;
-      const b64Pic = photo?.toDataURL('image/jpeg').split(',')[1]
-      if (!b64Pic) {
-        alert("Couldn't get image data");
-        setHasPhoto(false);
-        videoRef.current?.play()
-      }
-      setBase64Pic(b64Pic!)
+    console.log("scanning")
+    let photo = photoRef.current;
+    const b64Pic = photo?.toDataURL('image/jpeg').split(',')[1]
+    if (!b64Pic) {
+      alert("Couldn't get image data");
+      setHasPhoto(false);
+      videoRef.current?.play()
     }
+    setBase64Pic(b64Pic!)
+  }
   const takePhoto = () => {
     let video = videoRef.current;
     let photo = photoRef.current;
@@ -142,12 +132,30 @@ useEffect(() => {
     ctx?.drawImage(video, 0, 0);
     if (scanMode === "barcode") ScanBarcode();
     else if (scanMode === "scan-food") scanFood();
-      setHasPhoto(true);
+    setHasPhoto(true);
     video.pause();
   }
   useEffect(() => {
     getVideo();
   }, [videoRef])
+  useEffect(() => {
+    if (base64Pic) {
+      analyzePhotoMutate(base64Pic)
+    }
+  }, [base64Pic])
+  useEffect(() => {
+    if (photoData && photoData !== undefined && photoData !== null) {
+      console.log(photoData)
+      navigate("/add-meal", {
+        state: {
+          meal: {
+            name: photoData.meal_name,
+            foods: photoData.ingredients
+          }
+        }
+      })
+    }
+  }, [photoData])
   // Disable scrolling on mount, restore on unmount
   useEffect(() => {
     const original = document.body.style.overflow;
@@ -157,6 +165,7 @@ useEffect(() => {
       document.body.style.overflow = original;
     };
   }, []);
+
   return (
     <div className="flex flex-col items-center overflow-hidden w-full flex-1">
       {/* Header */}
@@ -171,7 +180,7 @@ useEffect(() => {
 
           <video className={`w-full h-full flex items-center justify-center object-cover ${hasPhoto ? "hidden" : "block"}`} playsInline muted ref={videoRef} />
 
-          
+
           <canvas className={`w-full h-full flex items-center justify-center object-cover ${hasPhoto ? "block" : "hidden"}`} ref={photoRef} />
 
           {/* Toggle Group for Scan Options - Bottom overlay */}

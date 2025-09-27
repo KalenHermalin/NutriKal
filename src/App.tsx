@@ -32,7 +32,7 @@ export default App
 
 const Layout = () => {
   return (
-    <div className="flex flex-col m-1 h-screen">
+    <div className="flex flex-col m-1 h-screen min-w-[360px] overflow-x-hidden">
       <div className="flex-1 flex flex-col">
         <Outlet />
         <BottomNavigation />

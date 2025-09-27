@@ -18,7 +18,7 @@ export default defineConfig({
       name: 'NutriKal',
       short_name: 'NutriKal',
       description: 'Track your calories and macros by searching foods, scanning barcodes and analyszing meals!',
-      theme_color: '#ffffff',
+      theme_color: '#0C0A09',
     },
 
     workbox: {

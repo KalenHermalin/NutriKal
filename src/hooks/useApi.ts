@@ -1,5 +1,5 @@
 import { Food } from '@/lib/types';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 
 
 const API_URL = 'https://octopus-app-8lwy6.ondigitalocean.app/'
@@ -42,24 +42,21 @@ export const scanBarcode = (barcode: string) => {
  })
 }
 
-export const analyzePhoto = (base64: string) => {
- const scan = async () => {
-    const response = await fetch(`${API_URL}api/picture`, {
+export const analyzePhoto = () => {
+ return useMutation({
+    mutationFn: async (base64: string) => {
+      console.log("analyzing photo")
+      const response = await fetch(`${API_URL}api/picture`, {
         method: "POST",
         body: JSON.stringify({ picture: base64 }),
         headers: {
           'Content-Type': 'application/json',
         }
       });
+      
       const json = await response.json();
       console.log(json)
       return json
-
- }
- return useQuery({
-    queryKey: ['analyzePhoto', base64],
-    queryFn: scan,
-    enabled: !!base64,
-    retry: false,
+    },
  })
 }

@@ -34,6 +34,7 @@ export interface Food {
   brand_name: string;
   servings: Serving[];
   quantity?: string;
+  selectedServing?: number;
 }
 
 export interface LogEntry {

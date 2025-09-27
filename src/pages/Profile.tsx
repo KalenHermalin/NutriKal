@@ -62,9 +62,9 @@ export default function Profile() {
   }
   return (
     <div className="min-h-screen bg-background text-foreground pb-20">
-      <div className="p-6 space-y-6">
+      <div className="p-0 space-y-6">
         {/* Header */}
-        <div>
+        <div className=" py-3 px-3">
           <h1 className="text-3xl font-bold mb-2">Profile</h1>
           <p className="text-muted-foreground">
             Customize your app settings and nutrition goals
@@ -248,8 +248,11 @@ export default function Profile() {
               NutriKal helps you monitor your nutrition with ease. Track your meals,
               scan barcodes, analyze photos, and maintain a healthy lifestyle with
               comprehensive food logging and progress tracking.
-              Powered by: Fat Secret API
+              
             </p>
+            <a target="_blank" rel="noopener noreferrer" href="https://www.fatsecret.com">
+    <img src="https://platform.fatsecret.com/api/static/images/powered_by_fatsecret.svg"/>
+</a>
           </CardContent>
         </Card>
       </div>

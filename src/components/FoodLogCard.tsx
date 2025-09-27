@@ -40,23 +40,28 @@ export const FoodLogEntry = ({ entry }: FoodLogEntryProps) => {
     <div className="bg-background rounded-lg p-4 border border-border">
       <div className="flex justify-between items-start">
         <div className="flex-1">
+          <div className="font-bold text-sm md:text-xl text-foreground mb-1">{entry?.mealName}</div>
+          
+          <div className="text-sm text-muted-foreground mb-2">{entry?.totalCalories.toFixed(0)} Cals</div>
+          <div className="flex gap-4 text-xs text-muted-foreground">
+            <span className="text-primary">P:</span><span className="ml-[-10px]">{entry?.totalProtein.toFixed(0)}g</span>
+            <span className="text-chart-2">C:</span><span className="ml-[-10px]">{entry?.totalCarbs.toFixed(0)}g</span>
+            <span className="text-chart-3">F:</span><span className="ml-[-10px]">{entry?.totalFat.toFixed(0)}g</span>
+          </div>
+        </div>
+        <div className="flex flex-col items-end">
           <div className="flex items-center gap-2 mb-2">
             <Clock className="w-4 h-4 text-muted-foreground" />
             <span className="text-muted-foreground text-sm">{entry?.timestamp}</span>
           </div>
-          <div className="font-medium text-foreground mb-1">{entry?.mealName}</div>
-          <div className="text-sm text-muted-foreground mb-2">{entry?.totalCalories}</div>
-          <div className="flex gap-4 text-xs text-muted-foreground">
-            <span>P: {entry?.totalProtein.toFixed(1)}g</span>
-            <span>C: {entry?.totalCarbs.toFixed(1)}g</span>
-            <span>F: {entry?.totalFat.toFixed(1)}g</span>
-          </div>
+          <X className="ml-5 mt-2 cursor-pointer text-muted-foreground hover:text-destructive" onClick={()=> db.mealLogs.delete(entry?.id)} />
         </div>
-        <div className="text-right">
+
+       {/* <div className="text-right">
           <span className="text-xl font-bold text-foreground">{entry?.totalCalories}</span>
           <span className="text-xs text-muted-foreground"> cal</span>
           <X className="ml-5 mt-2 cursor-pointer text-muted-foreground hover:text-destructive" onClick={()=> db.mealLogs.delete(entry?.id)} />
-        </div>
+        </div>*/}
       </div>
     </div>
   );
